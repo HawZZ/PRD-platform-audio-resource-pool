@@ -367,7 +367,7 @@
 
     .filter-grid {
       display: grid;
-      grid-template-columns: repeat(4, minmax(120px, 1fr));
+      grid-template-columns: repeat(5, minmax(120px, 1fr));
       gap: 12px;
       align-items: end;
     }
@@ -418,6 +418,65 @@
       flex-wrap: wrap;
     }
 
+    .category-manager {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border-light);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .category-title {
+      color: var(--regular);
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .category-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .category-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 26px;
+      padding: 0 8px;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius);
+      background: #f7f9fc;
+      color: var(--regular);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .category-chip button {
+      width: 18px;
+      height: 18px;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      color: var(--secondary);
+      cursor: pointer;
+      line-height: 1;
+      padding: 0;
+    }
+
+    .category-chip button:hover {
+      color: var(--danger);
+      background: #fef0f0;
+    }
+
+    .category-add {
+      width: 260px;
+      display: flex;
+      gap: 8px;
+    }
+
     .btn {
       height: 32px;
       min-width: 72px;
@@ -464,7 +523,7 @@
 
     .stats {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 12px;
     }
 
@@ -528,7 +587,7 @@
     table {
       width: 100%;
       border-collapse: collapse;
-      min-width: 820px;
+      min-width: 940px;
     }
 
     th,
@@ -963,6 +1022,14 @@
         grid-template-columns: 1fr;
       }
 
+      .category-manager {
+        grid-template-columns: 1fr;
+      }
+
+      .category-add {
+        width: 100%;
+      }
+
       .actions {
         justify-content: stretch;
       }
@@ -1083,6 +1150,10 @@
                   </select>
                 </div>
                 <div class="field">
+                  <label for="filterCategory">分类</label>
+                  <select id="filterCategory"></select>
+                </div>
+                <div class="field">
                   <label for="filterStatus">资源状态</label>
                   <select id="filterStatus">
                     <option value="">全部状态</option>
@@ -1090,6 +1161,16 @@
                     <option value="published">已发布</option>
                     <option value="disabled">停用</option>
                   </select>
+                </div>
+              </div>
+              <div class="category-manager">
+                <div>
+                  <div class="category-title">分类标签</div>
+                  <div class="category-tags" id="categoryTags"></div>
+                </div>
+                <div class="category-add">
+                  <input id="categoryInput" placeholder="输入分类名称" autocomplete="off">
+                  <button class="btn" id="addCategoryBtn" type="button">新增标签</button>
                 </div>
               </div>
             </div>
@@ -1110,6 +1191,7 @@
                       <tr>
                         <th>资源</th>
                         <th>资源 id</th>
+                        <th>分类</th>
                         <th>音源类型</th>
                         <th>多语言</th>
                         <th>状态</th>
@@ -1152,6 +1234,10 @@
             <div class="field">
               <label for="formId">资源 id</label>
               <input id="formId" required autocomplete="off" placeholder="输入资源 id">
+            </div>
+            <div class="field">
+              <label for="formCategory">分类</label>
+              <select id="formCategory"></select>
             </div>
             <div class="field">
               <label for="formStatus">资源状态</label>
@@ -1254,11 +1340,14 @@
       "linear-gradient(135deg,#e3f7fb,#51bad1)"
     ];
 
+    let categories = ["助眠", "自然声", "提示音"];
+
     let resources = [
       {
         productId: products.BM08.productId,
         productModel: "BM08",
         id: "691d1e0580873df5045be021",
+        category: "自然声",
         name: "Ocean Drift",
         image: "bm08-ocean-drift.png",
         type: "online",
@@ -1278,6 +1367,7 @@
         productId: products.WN08.productId,
         productModel: "WN08",
         id: "00",
+        category: "助眠",
         name: "White Noise",
         image: "wn08-white-noise.png",
         type: "local",
@@ -1297,6 +1387,7 @@
         productId: products.WN08.productId,
         productModel: "WN08",
         id: "33",
+        category: "自然声",
         name: "Soft Rain",
         image: "",
         type: "online",
@@ -1316,6 +1407,7 @@
         productId: products.BM04.productId,
         productModel: "BM04",
         id: "0",
+        category: "助眠",
         name: "Lullaby Pulse",
         image: "bm04-lullaby.png",
         type: "local",
@@ -1335,6 +1427,7 @@
         productId: products.BM04.productId,
         productModel: "BM04",
         id: "7",
+        category: "提示音",
         name: "Night Breeze",
         image: "",
         type: "local",
@@ -1366,7 +1459,6 @@
     function resourceKey(resource) {
       return [
         resource.productId,
-        resource.productModel,
         resource.id
       ].map((part) => encodeURIComponent(part)).join("::");
     }
@@ -1412,6 +1504,27 @@
       el("pageLangTabs").innerHTML = tabs;
     }
 
+    function renderCategoryControls() {
+      const optionHtml = [
+        `<option value="">全部分类</option>`,
+        ...categories.map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`)
+      ].join("");
+      const currentFilter = el("filterCategory").value;
+      const currentForm = el("formCategory").value;
+      el("filterCategory").innerHTML = optionHtml;
+      el("filterCategory").value = categories.includes(currentFilter) ? currentFilter : "";
+      el("formCategory").innerHTML = categories.map((category) =>
+        `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`
+      ).join("");
+      el("formCategory").value = categories.includes(currentForm) ? currentForm : categories[0] || "";
+      el("categoryTags").innerHTML = categories.map((category) => `
+        <span class="category-chip">
+          <span>${escapeHtml(category)}</span>
+          <button type="button" data-category="${escapeHtml(category)}" aria-label="删除${escapeHtml(category)}">×</button>
+        </span>
+      `).join("");
+    }
+
     function syncLanguageChrome(lang) {
       document.querySelectorAll(".page-lang-tab").forEach((node) => {
         node.classList.toggle("active", node.dataset.lang === lang);
@@ -1439,6 +1552,7 @@
         id: el("filterId").value,
         name: el("filterName").value.trim().toLowerCase(),
         type: el("filterType").value,
+        category: el("filterCategory").value,
         status: el("filterStatus").value
       };
     }
@@ -1451,10 +1565,10 @@
           value.name.toLowerCase().includes(filters.name)
         );
         return item.productId === currentProduct.productId &&
-          item.productModel === currentProduct.productModel &&
           (!filters.id || item.id.includes(filters.id)) &&
           nameHit &&
           (!filters.type || item.type === filters.type) &&
+          (!filters.category || item.category === filters.category) &&
           (!filters.status || item.status === filters.status);
       });
       if (resetPage) currentPage = 1;
@@ -1462,13 +1576,15 @@
     }
 
     function renderStats() {
-      const currentResources = resources.filter((item) => item.productId === currentProduct.productId && item.productModel === currentProduct.productModel);
+      const currentResources = resources.filter((item) => item.productId === currentProduct.productId);
       const published = currentResources.filter((item) => item.status === "published").length;
       const local = currentResources.filter((item) => item.type === "local").length;
       const online = currentResources.filter((item) => item.type === "online").length;
+      const usedCategories = new Set(currentResources.map((item) => item.category).filter(Boolean)).size;
       el("stats").innerHTML = [
         ["资源总数", currentResources.length, "已建档资源"],
         ["本地 / 在线", `${local} / ${online}`, "按音源类型区分"],
+        ["已用分类", usedCategories, "按当前产品统计"],
         ["已发布", published, "可用于对外资源服务"]
       ].map(([label, value, note]) => `
         <div class="stat">
@@ -1502,6 +1618,7 @@
               </div>
             </td>
             <td><span class="mono">${escapeHtml(item.id)}</span></td>
+            <td>${item.category ? `<span class="tag draft">${escapeHtml(item.category)}</span>` : "--"}</td>
             <td><span class="tag ${type.cls}">${type.label}</span></td>
             <td>${languageCount}/${languageCodes.length}</td>
             <td><span class="tag ${status.cls}">${status.label}</span></td>
@@ -1524,8 +1641,8 @@
     }
 
     function findByKey(key) {
-      const [productId, productModel, id] = key.split("::").map((part) => decodeURIComponent(part));
-      return resources.find((item) => item.productId === productId && item.productModel === productModel && item.id === id);
+      const [productId, id] = key.split("::").map((part) => decodeURIComponent(part));
+      return resources.find((item) => item.productId === productId && item.id === id);
     }
 
     function openDrawer(resource = null) {
@@ -1535,6 +1652,8 @@
       el("formProductId").value = resource?.productId || currentProduct.productId;
       el("formProduct").value = resource?.productModel || currentProduct.productModel;
       el("formId").value = resource?.id || "";
+      renderCategoryControls();
+      el("formCategory").value = resource?.category || categories[0] || "";
       el("formStatus").value = resource?.status || "draft";
       el("formType").value = resource?.type || "local";
       el("formOnlineValue").value = resource?.onlineValue || "";
@@ -1577,10 +1696,15 @@
       const productId = el("formProductId").value;
       const productModel = el("formProduct").value;
       const id = el("formId").value;
+      const category = el("formCategory").value;
       const editingKey = el("editingKey").value;
       const old = editingKey ? findByKey(editingKey) : null;
       if (!id) {
         showToast("资源 id 不能为空", "error");
+        return;
+      }
+      if (!category) {
+        showToast("请选择分类", "error");
         return;
       }
       if (el("formStatus").value === "published" && !langDraft.en.name.trim()) {
@@ -1597,7 +1721,6 @@
       }
       const duplicate = resources.find((item) =>
         item.productId === productId &&
-        item.productModel === productModel &&
         item.id === id &&
         resourceKey(item) !== editingKey
       );
@@ -1613,6 +1736,7 @@
         productId,
         productModel,
         id,
+        category,
         name: getResourceDisplayName({ id, languages: langDraft }),
         image: getResourceDisplayImage({ languages: langDraft }),
         type: el("formType").value,
@@ -1635,8 +1759,46 @@
 
     el("searchBtn").addEventListener("click", () => applyFilters(true));
     el("resetBtn").addEventListener("click", () => {
-      ["filterId", "filterName", "filterType", "filterStatus"].forEach((id) => el(id).value = "");
+      ["filterId", "filterName", "filterType", "filterCategory", "filterStatus"].forEach((id) => el(id).value = "");
       applyFilters(true);
+    });
+    el("addCategoryBtn").addEventListener("click", () => {
+      const value = el("categoryInput").value.trim();
+      if (!value) {
+        showToast("分类名称不能为空", "error");
+        return;
+      }
+      if (categories.includes(value)) {
+        showToast("分类标签已存在", "error");
+        return;
+      }
+      categories.push(value);
+      el("categoryInput").value = "";
+      renderCategoryControls();
+      showToast("分类标签已新增");
+    });
+    el("categoryInput").addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        el("addCategoryBtn").click();
+      }
+    });
+    el("categoryTags").addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-category]");
+      if (!button) return;
+      const category = button.dataset.category;
+      const inUse = resources.some((item) =>
+        item.productId === currentProduct.productId &&
+        item.category === category
+      );
+      if (inUse) {
+        showToast("已有资源使用该分类，不能删除", "error");
+        return;
+      }
+      categories = categories.filter((item) => item !== category);
+      renderCategoryControls();
+      applyFilters(false);
+      showToast("分类标签已删除");
     });
     el("createBtn").addEventListener("click", () => openDrawer());
     el("prevBtn").addEventListener("click", () => {
@@ -1670,7 +1832,7 @@
       if (!button) return;
       setActiveLang(button.dataset.lang);
     });
-    ["filterType", "filterStatus"].forEach((id) => {
+    ["filterType", "filterCategory", "filterStatus"].forEach((id) => {
       el(id).addEventListener("change", () => applyFilters(true));
     });
     ["filterId", "filterName"].forEach((id) => {
@@ -1680,6 +1842,7 @@
     });
 
     renderLanguageControls();
+    renderCategoryControls();
     setActiveLang("en");
     applyFilters(true);
   </script>
