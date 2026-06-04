@@ -1,0 +1,1687 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>平台音源资源池</title>
+  <style>
+    :root {
+      --primary: #4372ff;
+      --primary-dark: #2b6bd9;
+      --primary-soft: #ecf5ff;
+      --success: #67c23a;
+      --warning: #e6a23c;
+      --danger: #f56c6c;
+      --info: #909399;
+      --aside: #001529;
+      --bg: #f9f9f9;
+      --panel: #ffffff;
+      --text: #303133;
+      --regular: #606266;
+      --secondary: #909399;
+      --border: #dcdfe6;
+      --border-light: #e4e7ed;
+      --header: #fafafa;
+      --radius: 4px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      background: var(--bg);
+      font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 208px minmax(0, 1fr);
+    }
+
+    .sidebar {
+      background: var(--aside);
+      color: rgba(255,255,255,.72);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    .brand {
+      height: 64px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 20px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, #91d126, #4372ff);
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .menu-section {
+      padding: 18px 0 6px;
+      color: rgba(255,255,255,.42);
+      font-size: 12px;
+    }
+
+    .menu-section span {
+      display: block;
+      padding: 0 20px;
+    }
+
+    .menu-item {
+      min-height: 50px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 20px;
+      color: rgba(255,255,255,.72);
+      text-decoration: none;
+      border-left: 3px solid transparent;
+      white-space: nowrap;
+    }
+
+    .menu-item.active {
+      color: #fff;
+      background: rgba(67,114,255,.18);
+      border-left-color: var(--primary);
+    }
+
+    .main {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      height: 54px;
+      background: var(--panel);
+      box-shadow: rgba(0,0,0,.06) 0 -1px 0 0 inset;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+    }
+
+    .breadcrumb {
+      color: var(--secondary);
+      font-size: 12px;
+    }
+
+    .page-title {
+      color: var(--text);
+      font-size: 16px;
+      font-weight: 500;
+      margin-left: 10px;
+    }
+
+    .user-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--regular);
+      font-size: 13px;
+    }
+
+    .avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--primary-soft);
+      color: var(--primary);
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .content {
+      padding: 16px 24px 24px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .global-title {
+      color: var(--text);
+      font-size: 18px;
+      font-weight: 600;
+      margin-right: 18px;
+    }
+
+    .top-left {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      gap: 12px;
+    }
+
+    .product-card {
+      background: var(--panel);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius);
+      padding: 16px 18px 0;
+    }
+
+    .product-summary {
+      display: grid;
+      grid-template-columns: 74px minmax(0, 1fr) auto;
+      gap: 16px;
+      align-items: start;
+      padding-bottom: 14px;
+    }
+
+    .product-image {
+      width: 74px;
+      height: 74px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border-light);
+      background: linear-gradient(135deg, #eef4ff, #d8e7ff);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .product-image::after {
+      content: "";
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      right: 12px;
+      bottom: 12px;
+      background: rgba(67,114,255,.18);
+      box-shadow: inset 0 0 0 7px rgba(255,255,255,.65);
+    }
+
+    .product-main {
+      display: grid;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .product-title-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .product-name {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .cloud-text {
+      color: var(--secondary);
+      font-size: 13px;
+    }
+
+    .product-meta {
+      color: var(--regular);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 18px;
+      font-size: 13px;
+    }
+
+    .product-meta span {
+      white-space: nowrap;
+    }
+
+    .product-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .version-select {
+      width: 168px;
+    }
+
+    .detail-tabs {
+      display: flex;
+      align-items: center;
+      gap: 30px;
+      border-top: 1px solid var(--border-light);
+      min-height: 48px;
+      overflow-x: auto;
+    }
+
+    .detail-tab {
+      color: var(--regular);
+      white-space: nowrap;
+      min-height: 48px;
+      display: inline-flex;
+      align-items: center;
+      border-bottom: 2px solid transparent;
+      font-weight: 500;
+    }
+
+    .detail-tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    .subpage-shell {
+      background: var(--panel);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius);
+      min-width: 0;
+    }
+
+    .subpage-head {
+      min-height: 52px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .subpage-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--regular);
+      min-width: 0;
+    }
+
+    .subpage-title strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .page-lang-tabs {
+      display: flex;
+      gap: 0;
+      overflow-x: auto;
+      border-bottom: 1px solid var(--border-light);
+      padding: 0 16px;
+    }
+
+    .page-lang-tab {
+      height: 44px;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      background: transparent;
+      color: var(--regular);
+      padding: 0 14px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .page-lang-tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    .subpage-body {
+      padding: 16px;
+      display: grid;
+      gap: 16px;
+      min-width: 0;
+    }
+
+    .toolbar,
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius);
+    }
+
+    .toolbar {
+      padding: 16px;
+    }
+
+    .toolbar-actions {
+      margin-bottom: 12px;
+    }
+
+    .filter-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(120px, 1fr));
+      gap: 12px;
+      align-items: end;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    label {
+      color: var(--regular);
+      font-size: 13px;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: #fff;
+      color: var(--text);
+      padding: 0 10px;
+      outline: none;
+      min-width: 0;
+    }
+
+    textarea {
+      height: 68px;
+      padding: 7px 10px;
+      resize: vertical;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(67,114,255,.12);
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      height: 32px;
+      min-width: 72px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: #fff;
+      color: var(--regular);
+      padding: 0 12px;
+      cursor: pointer;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      color: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .btn.primary {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+
+    .btn.primary:hover {
+      background: var(--primary-dark);
+      border-color: var(--primary-dark);
+      color: #fff;
+    }
+
+    .btn.link {
+      border: 0;
+      background: transparent;
+      min-width: 0;
+      height: auto;
+      padding: 0 4px;
+      color: var(--primary);
+    }
+
+    .btn.danger {
+      color: var(--danger);
+      border-color: #fbc4c4;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .stat {
+      background: var(--panel);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      display: grid;
+      gap: 6px;
+    }
+
+    .stat-label {
+      color: var(--secondary);
+      font-size: 12px;
+    }
+
+    .stat-value {
+      font-size: 22px;
+      line-height: 1.2;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .stat-note {
+      color: var(--regular);
+      font-size: 12px;
+    }
+
+    .workspace-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .panel-head {
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .panel-title {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .panel-meta {
+      color: var(--secondary);
+      font-size: 12px;
+    }
+
+    .table-wrap {
+      overflow: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 820px;
+    }
+
+    th,
+    td {
+      padding: 12px;
+      border-bottom: 1px solid var(--border-light);
+      text-align: left;
+      vertical-align: middle;
+      color: var(--regular);
+      white-space: nowrap;
+    }
+
+    th {
+      background: var(--header);
+      color: var(--secondary);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    tr:hover td {
+      background: #fcfdff;
+    }
+
+    .resource-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 210px;
+    }
+
+    .cover {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius);
+      background: var(--cover, linear-gradient(135deg,#dfe7ff,#f5f7fa));
+      border: 1px solid var(--border-light);
+      flex: 0 0 auto;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cover::after {
+      content: "";
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.7);
+      right: 7px;
+      bottom: 7px;
+      box-shadow: inset 0 0 0 4px rgba(48,49,51,.12);
+    }
+
+    .song {
+      display: grid;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .song-name {
+      color: var(--text);
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 170px;
+    }
+
+    .song-sub {
+      color: var(--secondary);
+      font-size: 12px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 170px;
+    }
+
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      color: var(--text);
+      background: #f5f7fa;
+      border: 1px solid #ebeef5;
+      padding: 2px 6px;
+      border-radius: 3px;
+      display: inline-block;
+      max-width: 210px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      vertical-align: middle;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 24px;
+      padding: 0 8px;
+      border-radius: var(--radius);
+      font-size: 12px;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+
+    .tag.local {
+      color: #1f7a3c;
+      background: #f0f9eb;
+      border-color: #d1edc4;
+    }
+
+    .tag.online {
+      color: #7a5200;
+      background: #fdf6ec;
+      border-color: #faecd8;
+    }
+
+    .tag.published {
+      color: #1f7a3c;
+      background: #f0f9eb;
+      border-color: #d1edc4;
+    }
+
+    .tag.draft {
+      color: var(--info);
+      background: #f4f4f5;
+      border-color: #e9e9eb;
+    }
+
+    .tag.disabled {
+      color: var(--danger);
+      background: #fef0f0;
+      border-color: #fde2e2;
+    }
+
+    .side-panel {
+      display: grid;
+      gap: 16px;
+    }
+
+    .query-box {
+      padding: 16px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .result-box {
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius);
+      background: #fcfcfd;
+      min-height: 168px;
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+
+    .result-title {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .kv {
+      display: grid;
+      grid-template-columns: 92px minmax(0, 1fr);
+      gap: 8px;
+      color: var(--regular);
+      font-size: 13px;
+    }
+
+    .kv dt {
+      color: var(--secondary);
+      margin: 0;
+    }
+
+    .kv dd {
+      margin: 0;
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .notice {
+      border: 1px solid #faecd8;
+      background: #fdf6ec;
+      color: #7a5200;
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      font-size: 13px;
+    }
+
+    .notice.info {
+      border-color: #d9e8ff;
+      background: var(--primary-soft);
+      color: #2450b2;
+    }
+
+    .empty {
+      min-height: 170px;
+      display: grid;
+      place-items: center;
+      color: var(--secondary);
+      text-align: center;
+      padding: 24px;
+    }
+
+    .pager {
+      min-height: 56px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      color: var(--secondary);
+      font-size: 13px;
+    }
+
+    .drawer-mask {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.28);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease;
+      z-index: 20;
+    }
+
+    .drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: min(720px, 100vw);
+      height: 100vh;
+      background: var(--panel);
+      box-shadow: var(--el-box-shadow-dark, -8px 0 22px rgba(0,0,0,.16));
+      transform: translateX(100%);
+      transition: transform .18s ease;
+      z-index: 21;
+      display: grid;
+      grid-template-rows: 56px minmax(0, 1fr) 64px;
+    }
+
+    body.drawer-open .drawer-mask {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    body.drawer-open .drawer {
+      transform: translateX(0);
+    }
+
+    .drawer-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .drawer-title {
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    .icon-btn {
+      width: 32px;
+      height: 32px;
+      border: 0;
+      background: transparent;
+      border-radius: var(--radius);
+      cursor: pointer;
+      color: var(--regular);
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .icon-btn:hover {
+      background: #f5f7fa;
+      color: var(--primary);
+    }
+
+    .drawer-body {
+      overflow: auto;
+      padding: 20px;
+      display: grid;
+      gap: 18px;
+      align-content: start;
+    }
+
+    .form-section {
+      display: grid;
+      gap: 12px;
+    }
+
+    .form-section-title {
+      font-weight: 600;
+      color: var(--text);
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px 16px;
+    }
+
+    .form-grid .full {
+      grid-column: 1 / -1;
+    }
+
+    .resource-mode {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .mode-option {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      cursor: pointer;
+      display: grid;
+      gap: 4px;
+      min-height: 70px;
+    }
+
+    .mode-option.active {
+      border-color: var(--primary);
+      background: var(--primary-soft);
+    }
+
+    .mode-title {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .mode-desc {
+      color: var(--secondary);
+      font-size: 12px;
+    }
+
+    .drawer-foot {
+      border-top: 1px solid var(--border-light);
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 0 20px;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      top: 18px;
+      transform: translateX(-50%) translateY(-20px);
+      opacity: 0;
+      pointer-events: none;
+      min-width: 240px;
+      max-width: min(520px, calc(100vw - 32px));
+      background: #fff;
+      border: 1px solid var(--border-light);
+      box-shadow: 0 4px 18px rgba(0,0,0,.12);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      color: var(--regular);
+      z-index: 40;
+      transition: opacity .16s ease, transform .16s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .toast.success {
+      border-color: #d1edc4;
+      color: #1f7a3c;
+    }
+
+    .toast.error {
+      border-color: #fde2e2;
+      color: var(--danger);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 1180px) {
+      .filter-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .workspace-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        min-height: auto;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+
+      .brand {
+        height: 54px;
+      }
+
+      .menu-section,
+      .menu-item:not(.active) {
+        display: none;
+      }
+
+      .menu-item.active {
+        min-height: 40px;
+      }
+
+      .topbar {
+        padding: 0 16px;
+      }
+
+      .content {
+        padding: 16px;
+      }
+
+      .filter-grid,
+      .stats,
+      .form-grid,
+      .resource-mode {
+        grid-template-columns: 1fr;
+      }
+
+      .actions {
+        justify-content: stretch;
+      }
+
+      .actions .btn {
+        flex: 1 1 92px;
+      }
+
+      .drawer {
+        width: 100vw;
+      }
+
+      .kv {
+        grid-template-columns: 78px minmax(0, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark">IoT</span><span>IoT Admin</span></div>
+      <a class="menu-item" href="#">概览</a>
+      <div class="menu-section"><span>智能产品</span></div>
+      <a class="menu-item active" href="#">产品列表</a>
+      <a class="menu-item" href="#">消息推送</a>
+      <div class="menu-section"><span>设备管理</span></div>
+      <a class="menu-item" href="#">设备列表</a>
+      <a class="menu-item" href="#">固件管理</a>
+      <a class="menu-item" href="#">OTA</a>
+      <div class="menu-section"><span>App</span></div>
+      <a class="menu-item" href="#">App列表</a>
+      <a class="menu-item" href="#">App升级</a>
+      <div class="menu-section"><span>配置中心</span></div>
+      <a class="menu-item" href="#">物模型池</a>
+      <a class="menu-item" href="#">产品模板</a>
+      <a class="menu-item" href="#">产品分类</a>
+      <a class="menu-item" href="#">多语言</a>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="top-left">
+          <div class="global-title">智能产品</div>
+          <div class="breadcrumb">查看产品详情 / 产品列表 / 智能产品</div>
+        </div>
+        <div class="user-pill"><span class="avatar">PM</span><span>平台管理员</span></div>
+      </header>
+
+      <section class="content">
+        <section class="product-card">
+          <div class="product-summary">
+            <div class="product-image"></div>
+            <div class="product-main">
+              <div class="product-title-row">
+                <div class="product-name">WN08 睡眠音响</div>
+                <span class="cloud-text">ROOT云</span>
+                <span class="tag published">已上架</span>
+              </div>
+              <div class="product-meta">
+                <span>产品分类：Digital Thermome</span>
+                <span>产品型号：WN08</span>
+                <span>产品代码：--</span>
+                <span>产品ID：2054039271856459778</span>
+                <span>产品模板ID：1964863593208832002</span>
+                <span>功能版本：版本1 - 已发布</span>
+              </div>
+            </div>
+            <div class="product-actions">
+              <select class="version-select" aria-label="功能版本">
+                <option>版本1 - 已发布</option>
+              </select>
+              <button class="btn">新建版本</button>
+              <button class="btn">下架产品</button>
+            </div>
+          </div>
+          <nav class="detail-tabs" aria-label="产品详情步骤">
+            <span class="detail-tab">基础信息</span>
+            <span class="detail-tab">功能设计</span>
+            <span class="detail-tab">扩展程序</span>
+            <span class="detail-tab">设备调试</span>
+            <span class="detail-tab">配网引导</span>
+            <span class="detail-tab active">高级配置</span>
+          </nav>
+        </section>
+
+        <section class="subpage-shell">
+          <div class="subpage-head">
+            <div class="subpage-title">
+              <button class="btn">返回</button>
+              <span>高级配置 /</span>
+              <strong>音源资源</strong>
+            </div>
+          </div>
+          <div class="page-lang-tabs" id="pageLangTabs" aria-label="页面语言"></div>
+          <div class="subpage-body">
+            <div class="toolbar">
+              <div class="actions toolbar-actions">
+                <button class="btn" id="resetBtn">重置</button>
+                <button class="btn primary" id="searchBtn">查询</button>
+                <button class="btn primary" id="createBtn">新增资源</button>
+              </div>
+              <div class="filter-grid">
+                <div class="field">
+                  <label for="filterId">资源 id</label>
+                  <input id="filterId" placeholder="输入资源 id" autocomplete="off">
+                </div>
+                <div class="field">
+                  <label for="filterName">歌曲名称</label>
+                  <input id="filterName" placeholder="输入名称" autocomplete="off">
+                </div>
+                <div class="field">
+                  <label for="filterType">音源类型</label>
+                  <select id="filterType">
+                    <option value="">全部类型</option>
+                    <option value="local">本地</option>
+                    <option value="online">在线</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="filterStatus">资源状态</label>
+                  <select id="filterStatus">
+                    <option value="">全部状态</option>
+                    <option value="draft">草稿</option>
+                    <option value="published">已发布</option>
+                    <option value="disabled">停用</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="stats" id="stats"></div>
+
+            <div class="workspace-grid">
+              <section class="panel">
+                <div class="panel-head">
+                  <div>
+                    <div class="panel-title">资源列表</div>
+                    <div class="panel-meta" id="listMeta">共 0 条</div>
+                  </div>
+                </div>
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>资源</th>
+                        <th>资源 id</th>
+                        <th>音源类型</th>
+                        <th>多语言</th>
+                        <th>状态</th>
+                        <th>更新时间</th>
+                        <th>操作</th>
+                      </tr>
+                    </thead>
+                    <tbody id="resourceRows"></tbody>
+                  </table>
+                  <div class="empty hidden" id="tableEmpty">暂无匹配资源</div>
+                </div>
+                <div class="pager">
+                  <span id="pageText">1 / 1</span>
+                  <button class="btn" id="prevBtn">上一页</button>
+                  <button class="btn" id="nextBtn">下一页</button>
+                </div>
+              </section>
+
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <div class="drawer-mask" id="drawerMask"></div>
+  <aside class="drawer" aria-hidden="true">
+    <div class="drawer-head">
+      <div class="drawer-title" id="drawerTitle">新增资源</div>
+      <button class="icon-btn" id="closeDrawer" aria-label="关闭">×</button>
+    </div>
+    <div class="drawer-body">
+      <form id="resourceForm">
+        <input type="hidden" id="editingKey">
+        <input type="hidden" id="formProductId">
+        <input type="hidden" id="formProduct">
+        <section class="form-section">
+          <div class="form-section-title">基础信息</div>
+          <div class="form-grid">
+            <div class="field">
+              <label for="formId">资源 id</label>
+              <input id="formId" required autocomplete="off" placeholder="输入资源 id">
+            </div>
+            <div class="field">
+              <label for="formStatus">资源状态</label>
+              <select id="formStatus">
+                <option value="draft">草稿</option>
+                <option value="published">已发布</option>
+                <option value="disabled">停用</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <div class="form-section-title">多语言图片与歌曲名称</div>
+          <div class="field">
+            <label id="langImageLabel" for="formLangImage">英文（默认）图片</label>
+            <input id="formLangImage" autocomplete="off" placeholder="输入图片 URL 或上传资源文件信息">
+          </div>
+          <div class="field">
+            <label id="langInputLabel" for="formLangName">英文（默认）名称</label>
+            <input id="formLangName" autocomplete="off">
+          </div>
+        </section>
+
+        <section class="form-section">
+          <div class="form-section-title">音源资源</div>
+          <div class="resource-mode">
+            <div class="mode-option active" id="modeLocal" data-type="local">
+              <div class="mode-title">本地</div>
+              <div class="mode-desc">不要求 URL 或音频文件</div>
+            </div>
+            <div class="mode-option" id="modeOnline" data-type="online">
+              <div class="mode-title">在线</div>
+              <div class="mode-desc">需要音源 URL 或上传资源文件信息</div>
+            </div>
+          </div>
+          <input type="hidden" id="formType" value="local">
+          <div class="field hidden" id="onlineField">
+            <label for="formOnlineValue">在线音源资源</label>
+            <textarea id="formOnlineValue" placeholder="输入音源 URL 或上传资源文件信息"></textarea>
+          </div>
+          <div class="notice" id="drawerNotice">已发布资源不建议修改资源 id。</div>
+        </section>
+      </form>
+    </div>
+    <div class="drawer-foot">
+      <button class="btn" id="cancelDrawer">取消</button>
+      <button class="btn primary" id="saveResource">保存</button>
+    </div>
+  </aside>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const statusMap = {
+      draft: { label: "草稿", cls: "draft" },
+      published: { label: "已发布", cls: "published" },
+      disabled: { label: "停用", cls: "disabled" }
+    };
+
+    const typeMap = {
+      local: { label: "本地", cls: "local" },
+      online: { label: "在线", cls: "online" }
+    };
+
+    const products = {
+      WN08: { productId: "2054039271856459778", productModel: "WN08" },
+      BM04: { productId: "2054039271856459779", productModel: "BM04" },
+      BM08: { productId: "2054039271856459777", productModel: "BM08" }
+    };
+
+    const currentProduct = products.WN08;
+
+    const languageOptions = {
+      en: { label: "英文（默认）", imageLabel: "英文（默认）图片", nameLabel: "英文（默认）名称" },
+      fr: { label: "法语", imageLabel: "法语图片", nameLabel: "法语名称" },
+      de: { label: "德语", imageLabel: "德语图片", nameLabel: "德语名称" },
+      es: { label: "西班牙语", imageLabel: "西班牙语图片", nameLabel: "西班牙语名称" },
+      it: { label: "意大利语", imageLabel: "意大利语图片", nameLabel: "意大利语名称" },
+      ar: { label: "阿拉伯语", imageLabel: "阿拉伯语图片", nameLabel: "阿拉伯语名称" },
+      pt: { label: "葡萄牙语", imageLabel: "葡萄牙语图片", nameLabel: "葡萄牙语名称" },
+      zh: { label: "中文", imageLabel: "中文图片", nameLabel: "中文名称" },
+      zhHant: { label: "繁体中文", imageLabel: "繁体中文图片", nameLabel: "繁体中文名称" },
+      vi: { label: "越南语", imageLabel: "越南语图片", nameLabel: "越南语名称" },
+      id: { label: "印尼语", imageLabel: "印尼语图片", nameLabel: "印尼语名称" },
+      th: { label: "泰语", imageLabel: "泰语图片", nameLabel: "泰语名称" },
+      ms: { label: "马来语", imageLabel: "马来语图片", nameLabel: "马来语名称" },
+      ja: { label: "日语", imageLabel: "日语图片", nameLabel: "日语名称" },
+      ru: { label: "俄语", imageLabel: "俄语图片", nameLabel: "俄语名称" },
+      fil: { label: "菲律宾语", imageLabel: "菲律宾语图片", nameLabel: "菲律宾语名称" }
+    };
+
+    const languageCodes = Object.keys(languageOptions);
+
+    const covers = [
+      "linear-gradient(135deg,#dfe7ff,#8fb0ff)",
+      "linear-gradient(135deg,#e8f6df,#86c752)",
+      "linear-gradient(135deg,#fff0d6,#f3b14f)",
+      "linear-gradient(135deg,#f8dddd,#ec7777)",
+      "linear-gradient(135deg,#e3f7fb,#51bad1)"
+    ];
+
+    let resources = [
+      {
+        productId: products.BM08.productId,
+        productModel: "BM08",
+        id: "691d1e0580873df5045be021",
+        name: "Ocean Drift",
+        image: "bm08-ocean-drift.png",
+        type: "online",
+        status: "published",
+        updated: "2026-06-03 10:24",
+        cover: covers[0],
+        onlineValue: "https://cdn.example.com/audio/bm08/ocean-drift.mp3",
+        languages: {
+          zh: { name: "海浪漂流", image: "bm08-ocean-drift.zh.png" },
+          en: { name: "Ocean Drift", image: "bm08-ocean-drift.en.png" },
+          zhHant: { name: "海浪漂流", image: "bm08-ocean-drift.zh-hant.png" },
+          de: { name: "Meeresdrift", image: "bm08-ocean-drift.de.png" },
+          ar: { name: "انجراف المحيط", image: "bm08-ocean-drift.ar.png" }
+        }
+      },
+      {
+        productId: products.WN08.productId,
+        productModel: "WN08",
+        id: "00",
+        name: "White Noise",
+        image: "wn08-white-noise.png",
+        type: "local",
+        status: "published",
+        updated: "2026-06-03 09:40",
+        cover: covers[1],
+        onlineValue: "",
+        languages: {
+          zh: { name: "白噪音", image: "wn08-white-noise.zh.png" },
+          en: { name: "White Noise", image: "wn08-white-noise.en.png" },
+          zhHant: { name: "白噪音", image: "wn08-white-noise.zh-hant.png" },
+          de: { name: "", image: "" },
+          ar: { name: "ضوضاء بيضاء", image: "wn08-white-noise.ar.png" }
+        }
+      },
+      {
+        productId: products.WN08.productId,
+        productModel: "WN08",
+        id: "33",
+        name: "Soft Rain",
+        image: "",
+        type: "online",
+        status: "draft",
+        updated: "2026-06-03 09:22",
+        cover: covers[2],
+        onlineValue: "",
+        languages: {
+          zh: { name: "轻柔雨声", image: "wn08-soft-rain.zh.png" },
+          en: { name: "Soft Rain", image: "wn08-soft-rain.en.png" },
+          zhHant: { name: "", image: "" },
+          de: { name: "", image: "" },
+          ar: { name: "", image: "" }
+        }
+      },
+      {
+        productId: products.BM04.productId,
+        productModel: "BM04",
+        id: "0",
+        name: "Lullaby Pulse",
+        image: "bm04-lullaby.png",
+        type: "local",
+        status: "published",
+        updated: "2026-06-03 08:58",
+        cover: covers[3],
+        onlineValue: "",
+        languages: {
+          zh: { name: "舒缓摇篮", image: "bm04-lullaby.zh.png" },
+          en: { name: "Lullaby Pulse", image: "bm04-lullaby.en.png" },
+          zhHant: { name: "舒緩搖籃", image: "bm04-lullaby.zh-hant.png" },
+          de: { name: "", image: "" },
+          ar: { name: "", image: "" }
+        }
+      },
+      {
+        productId: products.BM04.productId,
+        productModel: "BM04",
+        id: "7",
+        name: "Night Breeze",
+        image: "",
+        type: "local",
+        status: "disabled",
+        updated: "2026-06-02 18:10",
+        cover: covers[4],
+        onlineValue: "",
+        languages: {
+          zh: { name: "夜风", image: "" },
+          en: { name: "Night Breeze", image: "" },
+          zhHant: { name: "", image: "" },
+          de: { name: "", image: "" },
+          ar: { name: "", image: "" }
+        }
+      }
+    ];
+
+    let filtered = [...resources];
+    let currentPage = 1;
+    const pageSize = 6;
+    let activeLang = "en";
+    let langDraft = {};
+
+    const el = (id) => document.getElementById(id);
+    const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[char]));
+
+    function resourceKey(resource) {
+      return [
+        resource.productId,
+        resource.productModel,
+        resource.id
+      ].map((part) => encodeURIComponent(part)).join("::");
+    }
+
+    function emptyLanguageBundle() {
+      return Object.fromEntries(languageCodes.map((code) => [code, { name: "", image: "" }]));
+    }
+
+    function normalizeLanguages(languages = {}) {
+      const normalized = emptyLanguageBundle();
+      languageCodes.forEach((code) => {
+        const source = languages[code];
+        if (typeof source === "string") {
+          normalized[code] = { name: source, image: "" };
+        } else if (source) {
+          normalized[code] = {
+            name: source.name || "",
+            image: source.image || ""
+          };
+        }
+      });
+      return normalized;
+    }
+
+    function getResourceDisplayName(resource) {
+      const languages = normalizeLanguages(resource.languages);
+      const configured = Object.values(languages).find((value) => value.name.trim());
+      return languages.en.name.trim() || configured?.name.trim() || resource.name || resource.id;
+    }
+
+    function getResourceDisplayImage(resource) {
+      const languages = normalizeLanguages(resource.languages);
+      const configured = Object.values(languages).find((value) => value.image.trim());
+      return languages.en.image.trim() || configured?.image.trim() || resource.image || "";
+    }
+
+    function renderLanguageControls() {
+      const tabs = languageCodes.map((code) => {
+        const lang = languageOptions[code];
+        const active = code === activeLang ? " active" : "";
+        return `<button type="button" class="page-lang-tab${active}" data-lang="${code}">${lang.label}</button>`;
+      }).join("");
+      el("pageLangTabs").innerHTML = tabs;
+    }
+
+    function syncLanguageChrome(lang) {
+      document.querySelectorAll(".page-lang-tab").forEach((node) => {
+        node.classList.toggle("active", node.dataset.lang === lang);
+      });
+    }
+
+    function captureActiveLang() {
+      if (!activeLang || !langDraft[activeLang]) return;
+      langDraft[activeLang] = {
+        image: el("formLangImage").value,
+        name: el("formLangName").value
+      };
+    }
+
+    function showToast(message, type = "success") {
+      const toast = el("toast");
+      toast.textContent = message;
+      toast.className = `toast ${type} show`;
+      window.clearTimeout(showToast.timer);
+      showToast.timer = window.setTimeout(() => toast.classList.remove("show"), 2200);
+    }
+
+    function getFilters() {
+      return {
+        id: el("filterId").value,
+        name: el("filterName").value.trim().toLowerCase(),
+        type: el("filterType").value,
+        status: el("filterStatus").value
+      };
+    }
+
+    function applyFilters(resetPage = true) {
+      const filters = getFilters();
+      filtered = resources.filter((item) => {
+        const languageValues = Object.values(normalizeLanguages(item.languages));
+        const nameHit = !filters.name || languageValues.some((value) =>
+          value.name.toLowerCase().includes(filters.name)
+        );
+        return item.productId === currentProduct.productId &&
+          item.productModel === currentProduct.productModel &&
+          (!filters.id || item.id.includes(filters.id)) &&
+          nameHit &&
+          (!filters.type || item.type === filters.type) &&
+          (!filters.status || item.status === filters.status);
+      });
+      if (resetPage) currentPage = 1;
+      render();
+    }
+
+    function renderStats() {
+      const currentResources = resources.filter((item) => item.productId === currentProduct.productId && item.productModel === currentProduct.productModel);
+      const published = currentResources.filter((item) => item.status === "published").length;
+      const local = currentResources.filter((item) => item.type === "local").length;
+      const online = currentResources.filter((item) => item.type === "online").length;
+      el("stats").innerHTML = [
+        ["资源总数", currentResources.length, "已建档资源"],
+        ["本地 / 在线", `${local} / ${online}`, "按音源类型区分"],
+        ["已发布", published, "可用于对外资源服务"]
+      ].map(([label, value, note]) => `
+        <div class="stat">
+          <div class="stat-label">${label}</div>
+          <div class="stat-value">${value}</div>
+          <div class="stat-note">${note}</div>
+        </div>
+      `).join("");
+    }
+
+    function renderRows() {
+      const start = (currentPage - 1) * pageSize;
+      const rows = filtered.slice(start, start + pageSize);
+      el("listMeta").textContent = `共 ${filtered.length} 条`;
+      el("tableEmpty").classList.toggle("hidden", rows.length > 0);
+      el("resourceRows").innerHTML = rows.map((item) => {
+        const type = typeMap[item.type];
+        const status = statusMap[item.status];
+        const languageCount = Object.values(normalizeLanguages(item.languages)).filter((value) => value.name && value.image).length;
+        const displayName = getResourceDisplayName(item);
+        const displayImage = getResourceDisplayImage(item);
+        return `
+          <tr>
+            <td>
+              <div class="resource-cell">
+                <div class="cover" style="--cover:${item.cover}"></div>
+                <div class="song">
+                  <div class="song-name" title="${escapeHtml(displayName)}">${escapeHtml(displayName)}</div>
+                  <div class="song-sub">${displayImage ? escapeHtml(displayImage) : "图片未配置"}</div>
+                </div>
+              </div>
+            </td>
+            <td><span class="mono">${escapeHtml(item.id)}</span></td>
+            <td><span class="tag ${type.cls}">${type.label}</span></td>
+            <td>${languageCount}/${languageCodes.length}</td>
+            <td><span class="tag ${status.cls}">${status.label}</span></td>
+            <td>${item.updated}</td>
+            <td>
+              <button class="btn link" data-action="edit" data-key="${escapeHtml(resourceKey(item))}">编辑</button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+      const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+      el("pageText").textContent = `${currentPage} / ${pageCount}`;
+      el("prevBtn").disabled = currentPage <= 1;
+      el("nextBtn").disabled = currentPage >= pageCount;
+    }
+
+    function render() {
+      renderStats();
+      renderRows();
+    }
+
+    function findByKey(key) {
+      const [productId, productModel, id] = key.split("::").map((part) => decodeURIComponent(part));
+      return resources.find((item) => item.productId === productId && item.productModel === productModel && item.id === id);
+    }
+
+    function openDrawer(resource = null) {
+      const isEdit = Boolean(resource);
+      el("drawerTitle").textContent = isEdit ? "编辑音源资源" : "新增音源资源";
+      el("editingKey").value = isEdit ? resourceKey(resource) : "";
+      el("formProductId").value = resource?.productId || currentProduct.productId;
+      el("formProduct").value = resource?.productModel || currentProduct.productModel;
+      el("formId").value = resource?.id || "";
+      el("formStatus").value = resource?.status || "draft";
+      el("formType").value = resource?.type || "local";
+      el("formOnlineValue").value = resource?.onlineValue || "";
+      const selectedLang = activeLang || "en";
+      langDraft = normalizeLanguages(resource?.languages);
+      setResourceMode(el("formType").value);
+      activeLang = "";
+      setActiveLang(selectedLang, { capture: false });
+      document.body.classList.add("drawer-open");
+      document.querySelector(".drawer").setAttribute("aria-hidden", "false");
+    }
+
+    function closeDrawer() {
+      document.body.classList.remove("drawer-open");
+      document.querySelector(".drawer").setAttribute("aria-hidden", "true");
+    }
+
+    function setResourceMode(type) {
+      el("formType").value = type;
+      document.querySelectorAll(".mode-option").forEach((node) => {
+        node.classList.toggle("active", node.dataset.type === type);
+      });
+      el("onlineField").classList.toggle("hidden", type !== "online");
+    }
+
+    function setActiveLang(lang, { capture = true } = {}) {
+      if (capture) captureActiveLang();
+      activeLang = lang;
+      syncLanguageChrome(lang);
+      const meta = languageOptions[lang] || languageOptions.en;
+      const draft = langDraft[lang] || { name: "", image: "" };
+      el("langImageLabel").textContent = meta.imageLabel;
+      el("langInputLabel").textContent = meta.nameLabel;
+      el("formLangImage").value = draft.image || "";
+      el("formLangName").value = draft.name || "";
+    }
+
+    function saveResource() {
+      captureActiveLang();
+      const productId = el("formProductId").value;
+      const productModel = el("formProduct").value;
+      const id = el("formId").value;
+      const editingKey = el("editingKey").value;
+      const old = editingKey ? findByKey(editingKey) : null;
+      if (!id) {
+        showToast("资源 id 不能为空", "error");
+        return;
+      }
+      if (el("formStatus").value === "published" && !langDraft.en.name.trim()) {
+        showToast("发布前需要维护英文（默认）名称", "error");
+        return;
+      }
+      if (el("formStatus").value === "published" && !langDraft.en.image.trim()) {
+        showToast("发布前需要维护英文（默认）图片", "error");
+        return;
+      }
+      if (el("formType").value === "online" && el("formStatus").value === "published" && !el("formOnlineValue").value.trim()) {
+        showToast("在线音源发布前需要维护 URL 或上传资源文件信息", "error");
+        return;
+      }
+      const duplicate = resources.find((item) =>
+        item.productId === productId &&
+        item.productModel === productModel &&
+        item.id === id &&
+        resourceKey(item) !== editingKey
+      );
+      if (duplicate) {
+        showToast("当前产品下资源 id 已存在", "error");
+        return;
+      }
+      if (old?.status === "published" && (old.productId !== productId || old.productModel !== productModel || old.id !== id)) {
+        showToast("已发布资源不建议修改资源 id", "error");
+        return;
+      }
+      const data = {
+        productId,
+        productModel,
+        id,
+        name: getResourceDisplayName({ id, languages: langDraft }),
+        image: getResourceDisplayImage({ languages: langDraft }),
+        type: el("formType").value,
+        status: el("formStatus").value,
+        updated: new Date().toISOString().slice(0, 16).replace("T", " "),
+        cover: old?.cover || covers[resources.length % covers.length],
+        onlineValue: el("formOnlineValue").value,
+        languages: { ...langDraft }
+      };
+      if (old) {
+        const index = resources.indexOf(old);
+        resources[index] = data;
+      } else {
+        resources.unshift(data);
+      }
+      closeDrawer();
+      applyFilters(false);
+      showToast("资源已保存");
+    }
+
+    el("searchBtn").addEventListener("click", () => applyFilters(true));
+    el("resetBtn").addEventListener("click", () => {
+      ["filterId", "filterName", "filterType", "filterStatus"].forEach((id) => el(id).value = "");
+      applyFilters(true);
+    });
+    el("createBtn").addEventListener("click", () => openDrawer());
+    el("prevBtn").addEventListener("click", () => {
+      if (currentPage > 1) {
+        currentPage -= 1;
+        renderRows();
+      }
+    });
+    el("nextBtn").addEventListener("click", () => {
+      const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+      if (currentPage < pageCount) {
+        currentPage += 1;
+        renderRows();
+      }
+    });
+    el("resourceRows").addEventListener("click", (event) => {
+      const button = event.target.closest("button");
+      if (!button) return;
+      const item = findByKey(button.dataset.key);
+      if (button.dataset.action === "edit") openDrawer(item);
+    });
+    el("drawerMask").addEventListener("click", closeDrawer);
+    el("closeDrawer").addEventListener("click", closeDrawer);
+    el("cancelDrawer").addEventListener("click", closeDrawer);
+    el("saveResource").addEventListener("click", saveResource);
+    document.querySelectorAll(".mode-option").forEach((node) => {
+      node.addEventListener("click", () => setResourceMode(node.dataset.type));
+    });
+    el("pageLangTabs").addEventListener("click", (event) => {
+      const button = event.target.closest(".page-lang-tab");
+      if (!button) return;
+      setActiveLang(button.dataset.lang);
+    });
+    ["filterType", "filterStatus"].forEach((id) => {
+      el(id).addEventListener("change", () => applyFilters(true));
+    });
+    ["filterId", "filterName"].forEach((id) => {
+      el(id).addEventListener("keydown", (event) => {
+        if (event.key === "Enter") applyFilters(true);
+      });
+    });
+
+    renderLanguageControls();
+    setActiveLang("en");
+    applyFilters(true);
+  </script>
+</body>
+</html>
