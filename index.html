@@ -1095,7 +1095,7 @@
       <div class="brand"><span class="brand-mark">IoT</span><span>IoT Admin</span></div>
       <a class="menu-item" href="#">概览</a>
       <div class="menu-section">智能产品</div>
-      <a class="menu-item" href="#">产品列表</a>
+      <a class="menu-item" href="#" id="productListMenu">产品列表</a>
       <a class="menu-item" href="#">消息推送</a>
       <div class="menu-section">设备管理</div>
       <a class="menu-item" href="#">设备列表</a>
@@ -1108,7 +1108,7 @@
       <a class="menu-item" href="#">物模型池</a>
       <a class="menu-item" href="#">产品模板</a>
       <a class="menu-item" href="#">产品分类</a>
-      <a class="menu-item active" href="#" data-prototype-note-target="main-entry">音源管理</a>
+      <a class="menu-item active" href="#" id="audioManagementMenu" data-prototype-note-target="main-entry">音源管理</a>
       <a class="menu-item" href="#">多语言</a>
       <a class="menu-item" href="#">系统配置</a>
     </aside>
@@ -1134,10 +1134,9 @@
           </div>
         </section>
 
-        <nav class="module-tabs" aria-label="音源管理模块">
+        <nav class="module-tabs" id="moduleTabs" aria-label="音源管理模块">
           <button class="module-tab active" data-view="libraryView" type="button">音源库</button>
           <button class="module-tab" data-view="categoryView" type="button">音源类别</button>
-          <button class="module-tab" data-view="productView" type="button">产品详情查看</button>
         </nav>
 
         <section class="view active" id="libraryView">
@@ -2260,15 +2259,19 @@
 
     function setActiveView(viewId) {
       activeView = viewId;
+      const isProductView = viewId === "productView";
       document.querySelectorAll(".module-tab").forEach((tab) => {
         tab.classList.toggle("active", tab.dataset.view === viewId);
       });
       document.querySelectorAll(".view").forEach((view) => {
         view.classList.toggle("active", view.id === viewId);
       });
-      el("configPageHead").classList.toggle("hidden", viewId === "productView");
-      document.querySelector(".global-title").textContent = viewId === "productView" ? "智能产品" : "音源管理";
-      document.querySelector(".breadcrumb").textContent = viewId === "productView"
+      el("moduleTabs").classList.toggle("hidden", isProductView);
+      el("configPageHead").classList.toggle("hidden", isProductView);
+      el("audioManagementMenu").classList.toggle("active", !isProductView);
+      el("productListMenu").classList.toggle("active", isProductView);
+      document.querySelector(".global-title").textContent = isProductView ? "智能产品" : "音源管理";
+      document.querySelector(".breadcrumb").textContent = isProductView
         ? "查看产品详情 / 产品列表 / 智能产品"
         : "配置中心 / 音源管理";
       renderPrototypeAnnotations();
@@ -2335,6 +2338,14 @@
 
     document.querySelectorAll(".module-tab").forEach((tab) => {
       tab.addEventListener("click", () => setActiveView(tab.dataset.view));
+    });
+    el("audioManagementMenu").addEventListener("click", (event) => {
+      event.preventDefault();
+      setActiveView("libraryView");
+    });
+    el("productListMenu").addEventListener("click", (event) => {
+      event.preventDefault();
+      setActiveView("productView");
     });
 
     el("searchBtn").addEventListener("click", applyAudioFilters);
