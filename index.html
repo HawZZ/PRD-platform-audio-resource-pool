@@ -1528,14 +1528,22 @@
       "linear-gradient(135deg,#e3f7fb,#51bad1)"
     ];
 
-    let categories = ["助眠", "自然声", "提示音"];
+    let categoriesByLanguage = {
+      en: ["Sleep Aid", "Nature", "Prompt"],
+      zh: ["助眠", "自然声", "提示音"],
+      zhHant: ["助眠", "自然聲", "提示音"]
+    };
 
     let resources = [
       {
         productId: products.BM08.productId,
         productModel: "BM08",
         id: "691d1e0580873df5045be021",
-        category: "自然声",
+        categories: {
+          en: "Nature",
+          zh: "自然声",
+          zhHant: "自然聲"
+        },
         name: "Ocean Drift",
         image: "bm08-ocean-drift.png",
         type: "online",
@@ -1555,7 +1563,11 @@
         productId: products.WN08.productId,
         productModel: "WN08",
         id: "00",
-        category: "助眠",
+        categories: {
+          en: "Sleep Aid",
+          zh: "助眠",
+          zhHant: "助眠"
+        },
         name: "White Noise",
         image: "wn08-white-noise.png",
         type: "local",
@@ -1575,7 +1587,10 @@
         productId: products.WN08.productId,
         productModel: "WN08",
         id: "33",
-        category: "自然声",
+        categories: {
+          en: "Nature",
+          zh: "自然声"
+        },
         name: "Soft Rain",
         image: "",
         type: "online",
@@ -1595,7 +1610,11 @@
         productId: products.BM04.productId,
         productModel: "BM04",
         id: "0",
-        category: "助眠",
+        categories: {
+          en: "Sleep Aid",
+          zh: "助眠",
+          zhHant: "助眠"
+        },
         name: "Lullaby Pulse",
         image: "bm04-lullaby.png",
         type: "local",
@@ -1615,7 +1634,10 @@
         productId: products.BM04.productId,
         productModel: "BM04",
         id: "7",
-        category: "提示音",
+        categories: {
+          en: "Prompt",
+          zh: "提示音"
+        },
         name: "Night Breeze",
         image: "",
         type: "local",
@@ -1638,6 +1660,7 @@
     const pageSize = 6;
     let activeLang = "en";
     let langDraft = {};
+    let categoryDraft = {};
     let annotationPanelOpen = false;
     let activePrototypeNoteId = null;
     const uncategorizedFilterValue = "__uncategorized__";
@@ -1654,22 +1677,22 @@
         id: "category-lightweight",
         target: "category-manager",
         title: "分类轻量管理",
-        body: "分类标签只用于当前产品音源资源的整理和筛选，不扩展为独立分类中心。新增 / 编辑资源时分类为选填，可留空；列表筛选支持单独筛“不分类”资源；已被当前产品资源使用的分类删除时会被拦截。",
+        body: "分类标签按当前语言分别维护，不扩展为独立分类中心。新增 / 编辑资源时当前语言分类为选填，可留空；在某个语言创建的分类不会自动同步到其他语言；列表筛选支持单独筛“不分类”资源。",
         loc: "分类标签"
       },
       {
         id: "same-id-language-slots",
         target: "resource-id-language",
         title: "多语言同 id 内容位",
-        body: "新增资源时用户只录入一次资源 id。保存后系统以 product_id + resource_id 建立同一个音源主体，并为全部语言初始化相同 id 的内容位；用户切换语言 Tab 后，只需要补该语言下的图片和名称。",
+        body: "新增资源时用户只录入一次资源 id。保存后系统以 product_id + resource_id 建立同一个音源主体，并为全部语言初始化相同 id 的内容位；用户切换语言 Tab 后，只需要补该语言下的分类、图片和名称。",
         loc: "新增资源抽屉 / 资源 id",
         openDrawer: true
       },
       {
         id: "language-content-only",
         target: "language-content",
-        title: "语言只影响图片和名称",
-        body: "语言参数 language 用来区分同一音源主体下的封面和名称内容，不生成新的资源 id，也不改变固件内烧录的音源 id。",
+        title: "语言影响分类、图片和名称",
+        body: "语言参数 language 用来区分同一音源主体下的分类、封面和名称内容，不生成新的资源 id，也不改变固件内烧录的音源 id。",
         loc: "新增资源抽屉 / 多语言图片与歌曲名称",
         openDrawer: true
       },
@@ -1714,6 +1737,37 @@
         }
       });
       return normalized;
+    }
+
+    function emptyCategorySelectionBundle() {
+      return Object.fromEntries(languageCodes.map((code) => [code, ""]));
+    }
+
+    function normalizeCategoriesByLanguage(categories = {}) {
+      const normalized = Object.fromEntries(languageCodes.map((code) => [code, []]));
+      Object.entries(categories).forEach(([code, values]) => {
+        if (!normalized[code]) normalized[code] = [];
+        normalized[code] = Array.isArray(values) ? values.filter(Boolean) : [];
+      });
+      return normalized;
+    }
+
+    function normalizeResourceCategories(resource = {}) {
+      const normalized = emptyCategorySelectionBundle();
+      const source = resource.categories || resource.categoryByLanguage || {};
+      languageCodes.forEach((code) => {
+        normalized[code] = source[code] || "";
+      });
+      return normalized;
+    }
+
+    function activeCategories(lang = activeLang) {
+      const normalized = normalizeCategoriesByLanguage(categoriesByLanguage);
+      return normalized[lang] || [];
+    }
+
+    function resourceCategory(resource, lang = activeLang) {
+      return normalizeResourceCategories(resource)[lang] || "";
     }
 
     function getResourceDisplayName(resource) {
@@ -1827,21 +1881,22 @@
     }
 
     function renderCategoryControls() {
+      const currentCategories = activeCategories();
       const optionHtml = [
         `<option value="">全部分类</option>`,
         `<option value="${uncategorizedFilterValue}">不分类</option>`,
-        ...categories.map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`)
+        ...currentCategories.map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`)
       ].join("");
       const currentFilter = el("filterCategory").value;
       const currentForm = el("formCategory").value;
       el("filterCategory").innerHTML = optionHtml;
-      el("filterCategory").value = currentFilter === uncategorizedFilterValue || categories.includes(currentFilter) ? currentFilter : "";
+      el("filterCategory").value = currentFilter === uncategorizedFilterValue || currentCategories.includes(currentFilter) ? currentFilter : "";
       el("formCategory").innerHTML = [
         `<option value="">不分类</option>`,
-        ...categories.map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`)
+        ...currentCategories.map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`)
       ].join("");
-      el("formCategory").value = categories.includes(currentForm) ? currentForm : "";
-      el("categoryTags").innerHTML = categories.map((category) => `
+      el("formCategory").value = currentCategories.includes(currentForm) ? currentForm : "";
+      el("categoryTags").innerHTML = currentCategories.map((category) => `
         <span class="category-chip">
           <span>${escapeHtml(category)}</span>
           <button type="button" data-category="${escapeHtml(category)}" aria-label="删除${escapeHtml(category)}">×</button>
@@ -1861,6 +1916,7 @@
         image: el("formLangImage").value,
         name: el("formLangName").value
       };
+      categoryDraft[activeLang] = el("formCategory").value;
     }
 
     function showToast(message, type = "success") {
@@ -1888,8 +1944,9 @@
         const nameHit = !filters.name || languageValues.some((value) =>
           value.name.toLowerCase().includes(filters.name)
         );
+        const itemCategory = resourceCategory(item);
         const categoryHit = !filters.category ||
-          (filters.category === uncategorizedFilterValue ? !item.category : item.category === filters.category);
+          (filters.category === uncategorizedFilterValue ? !itemCategory : itemCategory === filters.category);
         return item.productId === currentProduct.productId &&
           (!filters.id || item.id.includes(filters.id)) &&
           nameHit &&
@@ -1906,11 +1963,11 @@
       const published = currentResources.filter((item) => item.status === "published").length;
       const local = currentResources.filter((item) => item.type === "local").length;
       const online = currentResources.filter((item) => item.type === "online").length;
-      const usedCategories = new Set(currentResources.map((item) => item.category).filter(Boolean)).size;
+      const usedCategories = new Set(currentResources.map((item) => resourceCategory(item)).filter(Boolean)).size;
       el("stats").innerHTML = [
         ["资源总数", currentResources.length, "已建档资源"],
         ["本地 / 在线", `${local} / ${online}`, "按音源类型区分"],
-        ["已用分类", usedCategories, "按当前产品统计"],
+        ["已用分类", usedCategories, "按当前语言统计"],
         ["已发布", published, "可用于对外资源服务"]
       ].map(([label, value, note]) => `
         <div class="stat">
@@ -1932,6 +1989,7 @@
         const languageCount = Object.values(normalizeLanguages(item.languages)).filter((value) => value.name && value.image).length;
         const displayName = getResourceDisplayName(item);
         const displayImage = getResourceDisplayImage(item);
+        const displayCategory = resourceCategory(item);
         return `
           <tr>
             <td>
@@ -1944,7 +2002,7 @@
               </div>
             </td>
             <td><span class="mono">${escapeHtml(item.id)}</span></td>
-            <td>${item.category ? `<span class="tag draft">${escapeHtml(item.category)}</span>` : "--"}</td>
+            <td>${displayCategory ? `<span class="tag draft">${escapeHtml(displayCategory)}</span>` : "--"}</td>
             <td><span class="tag ${type.cls}">${type.label}</span></td>
             <td>${languageCount}/${languageCodes.length}</td>
             <td><span class="tag ${status.cls}">${status.label}</span></td>
@@ -1979,15 +2037,15 @@
       el("formProduct").value = resource?.productModel || currentProduct.productModel;
       el("formId").value = resource?.id || "";
       renderCategoryControls();
-      el("formCategory").value = resource?.category && categories.includes(resource.category) ? resource.category : "";
       el("formStatus").value = resource?.status || "draft";
       el("formType").value = resource?.type || "local";
       el("formOnlineValue").value = resource?.onlineValue || "";
       const selectedLang = activeLang || "en";
       langDraft = normalizeLanguages(resource?.languages);
+      categoryDraft = normalizeResourceCategories(resource);
       setResourceMode(el("formType").value);
       activeLang = "";
-      setActiveLang(selectedLang, { capture: false });
+      setActiveLang(selectedLang, { capture: false, refreshList: false });
       document.body.classList.add("drawer-open");
       document.querySelector(".drawer").setAttribute("aria-hidden", "false");
       renderPrototypeAnnotations();
@@ -2008,16 +2066,21 @@
       el("formOnlineValue").required = type === "online";
     }
 
-    function setActiveLang(lang, { capture = true } = {}) {
+    function setActiveLang(lang, { capture = true, refreshList = true } = {}) {
       if (capture) captureActiveLang();
       activeLang = lang;
       syncLanguageChrome(lang);
+      renderCategoryControls();
       const meta = languageOptions[lang] || languageOptions.en;
       const draft = langDraft[lang] || { name: "", image: "" };
       el("langImageLabel").textContent = meta.imageLabel;
       el("langInputLabel").textContent = meta.nameLabel;
       el("formLangImage").value = draft.image || "";
       el("formLangName").value = draft.name || "";
+      const currentCategories = activeCategories();
+      const currentCategory = categoryDraft[lang] || "";
+      el("formCategory").value = currentCategories.includes(currentCategory) ? currentCategory : "";
+      if (refreshList) applyFilters(true);
     }
 
     function saveResource() {
@@ -2025,7 +2088,6 @@
       const productId = el("formProductId").value;
       const productModel = el("formProduct").value;
       const id = el("formId").value.trim();
-      const category = el("formCategory").value;
       const editingKey = el("editingKey").value;
       const old = editingKey ? findByKey(editingKey) : null;
       if (!id) {
@@ -2071,7 +2133,7 @@
         productId,
         productModel,
         id,
-        category,
+        categories: { ...categoryDraft },
         name: getResourceDisplayName({ id, languages: langDraft }),
         image: getResourceDisplayImage({ languages: langDraft }),
         type: el("formType").value,
@@ -2099,15 +2161,17 @@
     });
     el("addCategoryBtn").addEventListener("click", () => {
       const value = el("categoryInput").value.trim();
+      const currentCategories = activeCategories();
       if (!value) {
         showToast("分类名称不能为空", "error");
         return;
       }
-      if (categories.includes(value)) {
+      if (currentCategories.includes(value)) {
         showToast("分类标签已存在", "error");
         return;
       }
-      categories.push(value);
+      categoriesByLanguage = normalizeCategoriesByLanguage(categoriesByLanguage);
+      categoriesByLanguage[activeLang] = [...currentCategories, value];
       el("categoryInput").value = "";
       renderCategoryControls();
       showToast("分类标签已新增");
@@ -2124,13 +2188,14 @@
       const category = button.dataset.category;
       const inUse = resources.some((item) =>
         item.productId === currentProduct.productId &&
-        item.category === category
+        resourceCategory(item) === category
       );
       if (inUse) {
         showToast("已有资源使用该分类，不能删除", "error");
         return;
       }
-      categories = categories.filter((item) => item !== category);
+      categoriesByLanguage = normalizeCategoriesByLanguage(categoriesByLanguage);
+      categoriesByLanguage[activeLang] = activeCategories().filter((item) => item !== category);
       renderCategoryControls();
       applyFilters(false);
       showToast("分类标签已删除");
@@ -2178,9 +2243,9 @@
       });
     });
 
+    categoriesByLanguage = normalizeCategoriesByLanguage(categoriesByLanguage);
     renderLanguageControls();
-    renderCategoryControls();
-    setActiveLang("en");
+    setActiveLang("en", { capture: false });
     setPrototypeAnnotationsOpen(false);
     applyFilters(true);
   </script>
