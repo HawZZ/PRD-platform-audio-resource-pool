@@ -62,6 +62,10 @@
       grid-template-columns: 208px minmax(0, 1fr);
     }
 
+    body.annotation-open .app {
+      grid-template-columns: 208px minmax(0, 1fr) 410px;
+    }
+
     .sidebar {
       background: var(--aside);
       color: rgba(255, 255, 255, .72);
@@ -973,16 +977,15 @@
     }
 
     .prototype-annotation-panel {
-      position: fixed;
-      right: 16px;
-      bottom: 64px;
-      width: 410px;
-      max-height: min(640px, calc(100vh - 100px));
+      position: sticky;
+      top: 0;
+      align-self: start;
+      height: 100vh;
+      max-height: 100vh;
       background: #fff;
-      border: 1px solid #f2d27a;
-      border-radius: 6px;
-      box-shadow: var(--shadow);
-      z-index: 70;
+      border-left: 1px solid #f2d27a;
+      box-shadow: -4px 0 12px rgba(31, 45, 61, .05);
+      z-index: 2;
       display: none;
       overflow: hidden;
     }
@@ -1086,6 +1089,10 @@
       background: #fff9e8;
       border-color: #f2d27a;
       color: #8a5a00;
+    }
+
+    body.annotation-open .prototype-annotation-toggle {
+      display: none;
     }
   </style>
 </head>
@@ -1359,18 +1366,18 @@
         </section>
       </section>
     </main>
-  </div>
 
-  <aside class="prototype-annotation-panel" id="prototypeAnnotationPanel" aria-label="原型批注">
-    <div class="prototype-annotation-head">
-      <div class="prototype-annotation-title">
-        <span>原型批注</span>
-        <button class="btn" id="closePrototypeAnnotations" type="button">收起</button>
+    <aside class="prototype-annotation-panel" id="prototypeAnnotationPanel" aria-label="原型批注">
+      <div class="prototype-annotation-head">
+        <div class="prototype-annotation-title">
+          <span>原型批注</span>
+          <button class="btn" id="closePrototypeAnnotations" type="button">收起</button>
+        </div>
+        <div class="prototype-annotation-caption">黄色编号是批注锚点，不属于真实 IoT Admin 页面。</div>
       </div>
-      <div class="prototype-annotation-caption">黄色编号是批注锚点，不属于真实 IoT Admin 页面。</div>
-    </div>
-    <div class="prototype-annotation-list" id="prototypeAnnotationList"></div>
-  </aside>
+      <div class="prototype-annotation-list" id="prototypeAnnotationList"></div>
+    </aside>
+  </div>
   <button class="btn prototype-annotation-toggle" id="openPrototypeAnnotations" type="button">原型批注</button>
 
   <div class="drawer-mask" id="drawerMask"></div>
