@@ -997,6 +997,37 @@
       font-size: 12px;
     }
 
+    .import-result {
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius);
+      background: #fbfcff;
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .progress-track {
+      height: 8px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: #edf1f7;
+    }
+
+    .progress-fill {
+      width: 0;
+      height: 100%;
+      background: var(--primary);
+      transition: width .2s ease;
+    }
+
+    .result-summary {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      color: var(--regular);
+      font-size: 13px;
+    }
+
     .toast {
       position: fixed;
       left: 50%;
@@ -1316,7 +1347,7 @@
                 <div class="actions">
                   <button class="btn" id="exportCategoryConfigBtn" data-prototype-note-target="category-export-import">导出配置表</button>
                   <button class="btn" id="uploadCategoryConfigBtn">上传覆盖</button>
-                  <input class="hidden" id="categoryConfigImportInput" type="file" accept=".csv,.xlsx,.xls">
+                  <input class="hidden" id="categoryConfigImportInput" type="file" accept=".csv">
                   <button class="btn" id="editCategoryBtn">编辑类别</button>
                   <button class="btn" id="copyCategoryBtn" data-prototype-note-target="category-copy">复制类别</button>
                   <button class="btn danger" id="deleteCategoryBtn">删除类别</button>
@@ -1345,6 +1376,29 @@
                 </div>
                 <button class="btn primary" id="associateAudioBtn">关联音源</button>
                 <div class="muted">同一音源 ID 可以出现在多个类别中；类别内的多语言配置相互独立。可导出表格编辑后上传覆盖当前类别多语言配置。</div>
+              </div>
+              <div class="import-result hidden" id="categoryImportStatus">
+                <div class="result-summary">
+                  <strong id="categoryImportProgressText">等待导入</strong>
+                  <span id="categoryImportSummary">总导入数 0 / 成功 0 / 失败 0</span>
+                </div>
+                <div class="progress-track">
+                  <div class="progress-fill" id="categoryImportProgressFill"></div>
+                </div>
+                <div class="table-wrap hidden" id="categoryImportFailureWrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>音源 ID</th>
+                        <th>失败原因</th>
+                      </tr>
+                    </thead>
+                    <tbody id="categoryImportFailureRows"></tbody>
+                  </table>
+                </div>
+                <div class="actions">
+                  <button class="btn" id="downloadCategoryFailureBtn" disabled>下载失败明细</button>
+                </div>
               </div>
               <div class="table-wrap language-table">
                 <table>
@@ -1526,13 +1580,13 @@
         audioIds: ["00", "33"],
         configs: {
           "00": {
-            en: { name: "White Noise", image: "cover-white-noise-en.png", asset: "" },
-            zh: { name: "白噪音", image: "cover-white-noise-zh.png", asset: "" },
+            en: { name: "White Noise", image: "https://cdn.example.com/images/cover-white-noise-en.png", asset: "" },
+            zh: { name: "白噪音", image: "https://cdn.example.com/images/cover-white-noise-zh.png", asset: "" },
             fr: { name: "Bruit blanc", image: "", asset: "" }
           },
           "33": {
-            en: { name: "Soft Rain", image: "cover-soft-rain-en.png", asset: "https://cdn.example.com/audio/wn08/soft-rain.mp3" },
-            zh: { name: "轻柔雨声", image: "cover-soft-rain-zh.png", asset: "https://cdn.example.com/audio/wn08/soft-rain.mp3" }
+            en: { name: "Soft Rain", image: "https://cdn.example.com/images/cover-soft-rain-en.png", asset: "https://cdn.example.com/audio/wn08/soft-rain.mp3" },
+            zh: { name: "轻柔雨声", image: "https://cdn.example.com/images/cover-soft-rain-zh.png", asset: "https://cdn.example.com/audio/wn08/soft-rain.mp3" }
           }
         }
       },
@@ -1544,16 +1598,16 @@
         audioIds: ["33", "691d1e0580873df5045be021", "00"],
         configs: {
           "33": {
-            en: { name: "Rain in Forest", image: "cover-forest-rain-en.png", asset: "https://cdn.example.com/audio/wn08/soft-rain.mp3" },
-            zh: { name: "森林雨声", image: "cover-forest-rain-zh.png", asset: "https://cdn.example.com/audio/wn08/soft-rain.mp3" }
+            en: { name: "Rain in Forest", image: "https://cdn.example.com/images/cover-forest-rain-en.png", asset: "https://cdn.example.com/audio/wn08/soft-rain.mp3" },
+            zh: { name: "森林雨声", image: "https://cdn.example.com/images/cover-forest-rain-zh.png", asset: "https://cdn.example.com/audio/wn08/soft-rain.mp3" }
           },
           "691d1e0580873df5045be021": {
-            en: { name: "Ocean Drift", image: "cover-ocean-drift-en.png", asset: "https://cdn.example.com/audio/bm08/ocean-drift.mp3" },
-            zh: { name: "海浪漂流", image: "cover-ocean-drift-zh.png", asset: "https://cdn.example.com/audio/bm08/ocean-drift.mp3" }
+            en: { name: "Ocean Drift", image: "https://cdn.example.com/images/cover-ocean-drift-en.png", asset: "https://cdn.example.com/audio/bm08/ocean-drift.mp3" },
+            zh: { name: "海浪漂流", image: "https://cdn.example.com/images/cover-ocean-drift-zh.png", asset: "https://cdn.example.com/audio/bm08/ocean-drift.mp3" }
           },
           "00": {
-            en: { name: "Quiet Air", image: "cover-quiet-air-en.png", asset: "" },
-            zh: { name: "静音空气", image: "cover-quiet-air-zh.png", asset: "" }
+            en: { name: "Quiet Air", image: "https://cdn.example.com/images/cover-quiet-air-en.png", asset: "" },
+            zh: { name: "静音空气", image: "https://cdn.example.com/images/cover-quiet-air-zh.png", asset: "" }
           }
         }
       },
@@ -1565,12 +1619,12 @@
         audioIds: ["0", "7"],
         configs: {
           "0": {
-            en: { name: "Complete Beep", image: "cover-complete-en.png", asset: "" },
-            zh: { name: "完成提示", image: "cover-complete-zh.png", asset: "" }
+            en: { name: "Complete Beep", image: "https://cdn.example.com/images/cover-complete-en.png", asset: "" },
+            zh: { name: "完成提示", image: "https://cdn.example.com/images/cover-complete-zh.png", asset: "" }
           },
           "7": {
-            en: { name: "Night Breeze", image: "cover-night-breeze-en.png", asset: "" },
-            zh: { name: "夜风提示", image: "cover-night-breeze-zh.png", asset: "" }
+            en: { name: "Night Breeze", image: "https://cdn.example.com/images/cover-night-breeze-en.png", asset: "" },
+            zh: { name: "夜风提示", image: "https://cdn.example.com/images/cover-night-breeze-zh.png", asset: "" }
           }
         }
       }
@@ -1586,6 +1640,7 @@
     let editingLanguageContext = null;
     let pendingDeleteAudioId = null;
     let deleteConfirmStep = 1;
+    let categoryImportFailures = [];
     let annotationPanelOpen = false;
 
     const prototypeNotes = [
@@ -2161,17 +2216,18 @@
           </section>
           <section class="form-section" data-prototype-note-target="language-edit">
             <div class="form-section-title">多语言内容</div>
+            <div class="notice">批量上传覆盖只支持图片 URL 和音源 URL；如需上传附件，请在此单条编辑界面处理，具体上传控件由技术方案确定。</div>
             <div class="field">
               <label for="langNameInput">音源名称</label>
               <input id="langNameInput" value="${escapeHtml(config.name)}" placeholder="输入该语言音源名称" autocomplete="off">
             </div>
             <div class="field">
               <label for="langImageInput">音源图片</label>
-              <input id="langImageInput" value="${escapeHtml(config.image)}" placeholder="输入图片 URL 或上传文件信息" autocomplete="off">
+              <input id="langImageInput" value="${escapeHtml(config.image)}" placeholder="输入图片 URL；附件上传由技术方案提供控件" autocomplete="off">
             </div>
             <div class="field">
               <label for="langAssetInput">音源上传文件 URL / 音源录入 URL</label>
-              <textarea id="langAssetInput" placeholder="输入 URL 或上传资源文件信息">${escapeHtml(config.asset)}</textarea>
+              <textarea id="langAssetInput" placeholder="输入音源 URL；附件上传由技术方案提供控件">${escapeHtml(config.asset)}</textarea>
             </div>
           </section>
         `,
@@ -2208,9 +2264,13 @@
 
     function categoryConfigHeader() {
       return [
-        "audio_id",
-        "audio_tags",
-        ...languageCodes.flatMap((code) => [`${code}_name`, `${code}_image`, `${code}_asset`])
+        "音源ID",
+        "音源标签",
+        ...languageCodes.flatMap((code) => [
+          `${languageOptions[code]}名称`,
+          `${languageOptions[code]}图片URL`,
+          `${languageOptions[code]}音源URL`
+        ])
       ];
     }
 
@@ -2246,60 +2306,131 @@
       return line.split(",").map((part) => part.trim().replace(/^"|"$/g, "").replace(/""/g, '"'));
     }
 
+    function headerIndex(header, labels) {
+      return labels.map((label) => header.indexOf(label)).find((index) => index >= 0) ?? -1;
+    }
+
+    function isUrlOrEmpty(value) {
+      return !value || /^https?:\/\//i.test(value);
+    }
+
     function parseCategoryConfigCsv(text) {
       const lines = text.split(/\r?\n+/).map((line) => line.trim()).filter(Boolean);
       if (lines.length < 2) return [];
       const header = splitCsvLine(lines[0]);
-      const indexOf = (key) => header.indexOf(key);
+      const idIndex = headerIndex(header, ["音源ID", "audio_id"]);
       return lines.slice(1).map((line) => {
         const values = splitCsvLine(line);
-        const row = { audioId: values[indexOf("audio_id")] || "", configs: {} };
+        const row = { audioId: values[idIndex] || "", configs: {} };
         languageCodes.forEach((code) => {
+          const nameIndex = headerIndex(header, [`${languageOptions[code]}名称`, `${code}_name`]);
+          const imageIndex = headerIndex(header, [`${languageOptions[code]}图片URL`, `${code}_image`]);
+          const assetIndex = headerIndex(header, [`${languageOptions[code]}音源URL`, `${code}_asset`]);
           row.configs[code] = {
-            name: values[indexOf(`${code}_name`)] || "",
-            image: values[indexOf(`${code}_image`)] || "",
-            asset: values[indexOf(`${code}_asset`)] || ""
+            name: values[nameIndex] || "",
+            image: values[imageIndex] || "",
+            asset: values[assetIndex] || ""
           };
         });
         return row;
       });
     }
 
+    function setCategoryImportProgress(percent, text) {
+      el("categoryImportStatus").classList.remove("hidden");
+      el("categoryImportProgressFill").style.width = `${percent}%`;
+      el("categoryImportProgressText").textContent = text;
+    }
+
+    function renderCategoryImportResult(result) {
+      categoryImportFailures = result.failures;
+      el("categoryImportSummary").textContent = `总导入数 ${result.total} / 成功 ${result.success} / 失败 ${result.failures.length}`;
+      el("categoryImportFailureWrap").classList.toggle("hidden", result.failures.length === 0);
+      el("downloadCategoryFailureBtn").disabled = result.failures.length === 0;
+      el("categoryImportFailureRows").innerHTML = result.failures.map((item) => `
+        <tr>
+          <td><span class="mono">${escapeHtml(item.audioId || "--")}</span></td>
+          <td>${escapeHtml(item.reason)}</td>
+        </tr>
+      `).join("");
+    }
+
     function applyCategoryConfigRows(category, rows, fileName) {
-      let updated = 0;
+      const result = { total: rows.length, success: 0, failures: [] };
       rows.forEach((row) => {
-        if (!row.audioId || !category.audioIds.includes(row.audioId)) return;
+        if (!row.audioId) {
+          result.failures.push({ audioId: "", reason: "缺少音源ID" });
+          return;
+        }
+        if (!category.audioIds.includes(row.audioId)) {
+          result.failures.push({ audioId: row.audioId, reason: "该音源ID未关联到当前类别" });
+          return;
+        }
+        const invalidFields = [];
+        languageCodes.forEach((code) => {
+          const config = row.configs[code] || {};
+          if (!isUrlOrEmpty(config.image)) invalidFields.push(`${languageOptions[code]}图片URL不是 URL`);
+          if (!isUrlOrEmpty(config.asset)) invalidFields.push(`${languageOptions[code]}音源URL不是 URL`);
+        });
+        if (invalidFields.length) {
+          result.failures.push({
+            audioId: row.audioId,
+            reason: `${invalidFields.join("；")}；批量上传覆盖只支持 URL，附件上传请在单条语言编辑界面处理`
+          });
+          return;
+        }
         category.configs ||= {};
         category.configs[row.audioId] ||= {};
         languageCodes.forEach((code) => {
           category.configs[row.audioId][code] = row.configs[code] || { name: "", image: "", asset: "" };
         });
-        updated += 1;
+        result.success += 1;
       });
       renderAll();
-      showToast(`已从 ${fileName} 覆盖 ${updated} 个音源的多语言配置`);
+      setCategoryImportProgress(100, "导入完成");
+      renderCategoryImportResult(result);
+      showToast(`已从 ${fileName} 导入 ${result.success}/${result.total} 条`);
     }
 
     function handleCategoryConfigImport() {
       const category = categoryById(activeCategoryId);
       const file = el("categoryConfigImportInput").files[0];
       if (!category || !file) return;
+      setCategoryImportProgress(12, "读取文件中");
+      el("categoryImportSummary").textContent = "总导入数 0 / 成功 0 / 失败 0";
+      el("categoryImportFailureWrap").classList.add("hidden");
+      el("downloadCategoryFailureBtn").disabled = true;
       if (!/\.csv$/i.test(file.name)) {
-        const rows = categoryConfigRows(category).map((row) => {
-          const configs = {};
-          languageCodes.forEach((code, index) => {
-            const offset = 2 + index * 3;
-            configs[code] = { name: row[offset], image: row[offset + 1], asset: row[offset + 2] };
-          });
-          return { audioId: row[0], configs };
+        setCategoryImportProgress(100, "导入完成");
+        renderCategoryImportResult({
+          total: 1,
+          success: 0,
+          failures: [{ audioId: "--", reason: "原型仅支持上传 CSV 配置表；Excel 解析由技术方案实现" }]
         });
-        applyCategoryConfigRows(category, rows, file.name);
         return;
       }
       const reader = new FileReader();
-      reader.onload = () => applyCategoryConfigRows(category, parseCategoryConfigCsv(reader.result || ""), file.name);
-      reader.onerror = () => showToast("文件读取失败，请重新上传", "error");
+      reader.onload = () => {
+        setCategoryImportProgress(68, "校验 URL 并覆盖配置");
+        applyCategoryConfigRows(category, parseCategoryConfigCsv(reader.result || ""), file.name);
+      };
+      reader.onerror = () => {
+        setCategoryImportProgress(100, "导入失败");
+        renderCategoryImportResult({
+          total: 1,
+          success: 0,
+          failures: [{ audioId: "--", reason: "文件读取失败，请重新上传" }]
+        });
+      };
       reader.readAsText(file);
+    }
+
+    function downloadCategoryImportFailures() {
+      if (!categoryImportFailures.length) return;
+      downloadCsv("audio-category-import-failures.csv", [
+        ["音源ID", "失败原因"],
+        ...categoryImportFailures.map((item) => [item.audioId || "--", item.reason])
+      ]);
     }
 
     function openBatchDrawer(type) {
@@ -2716,6 +2847,7 @@
     el("exportCategoryConfigBtn").addEventListener("click", exportActiveCategoryConfig);
     el("uploadCategoryConfigBtn").addEventListener("click", uploadActiveCategoryConfig);
     el("categoryConfigImportInput").addEventListener("change", handleCategoryConfigImport);
+    el("downloadCategoryFailureBtn").addEventListener("click", downloadCategoryImportFailures);
     el("associateAudioBtn").addEventListener("click", associateAudioToCategory);
     el("categoryConfigRows").addEventListener("click", (event) => {
       const button = event.target.closest("[data-edit-lang]");
