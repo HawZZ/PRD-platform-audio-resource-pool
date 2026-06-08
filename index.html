@@ -780,6 +780,169 @@
       color: #2450b2;
     }
 
+    .prototype-annotation-panel {
+      --annotation-width: 360px;
+      position: fixed;
+      top: 0;
+      right: 0;
+      z-index: 62;
+      width: var(--annotation-width);
+      height: 100vh;
+      background: #fffdf6;
+      border-left: 1px solid #f3d98b;
+      box-shadow: -10px 0 26px rgba(48,49,51,.12);
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      transform: translateX(100%);
+      transition: transform .18s ease;
+    }
+
+    body.annotation-open .prototype-annotation-panel {
+      transform: translateX(0);
+    }
+
+    body.annotation-open .app {
+      padding-right: var(--annotation-width, 360px);
+    }
+
+    body.annotation-open.drawer-open .drawer,
+    body.annotation-open.drawer-open .drawer-mask {
+      right: var(--annotation-width, 360px);
+    }
+
+    body.annotation-open.drawer-open .drawer {
+      width: min(720px, calc(100vw - var(--annotation-width, 360px) - 24px));
+    }
+
+    .prototype-annotation-head {
+      padding: 16px;
+      border-bottom: 1px solid #f3d98b;
+      display: grid;
+      gap: 8px;
+    }
+
+    .prototype-annotation-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-weight: 700;
+      color: #5d4100;
+    }
+
+    .prototype-annotation-caption {
+      color: #8a6d18;
+      font-size: 12px;
+      line-height: 18px;
+    }
+
+    .prototype-annotation-list {
+      padding: 12px;
+      overflow: auto;
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+
+    .prototype-note-card {
+      border: 1px solid #f1d57c;
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 10px;
+      color: var(--regular);
+      text-align: left;
+      display: grid;
+      grid-template-columns: 26px minmax(0, 1fr);
+      gap: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(90,64,0,.06);
+    }
+
+    .prototype-note-card.active {
+      border-color: #d89a00;
+      background: #fff8df;
+    }
+
+    .prototype-note-number,
+    .prototype-note-anchor {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: inline-grid;
+      place-items: center;
+      background: #ffd666;
+      border: 1px solid #d89a00;
+      color: #5d4100;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .prototype-note-copy {
+      display: grid;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .prototype-note-copy strong {
+      color: var(--text);
+      font-size: 13px;
+      line-height: 18px;
+    }
+
+    .prototype-note-copy span {
+      color: var(--secondary);
+      font-size: 12px;
+      line-height: 18px;
+    }
+
+    .prototype-note-copy p {
+      margin: 0;
+      color: var(--regular);
+      font-size: 13px;
+      line-height: 20px;
+    }
+
+    .prototype-note-host {
+      position: relative !important;
+    }
+
+    .prototype-note-anchor {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      z-index: 6;
+      padding: 0;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(90,64,0,.16);
+    }
+
+    .prototype-note-target-active {
+      outline: 2px solid #f5b400;
+      outline-offset: 3px;
+      box-shadow: 0 0 0 4px rgba(245,180,0,.12);
+    }
+
+    .prototype-annotation-toggle {
+      position: fixed;
+      right: 16px;
+      bottom: 18px;
+      z-index: 63;
+      min-width: 96px;
+      box-shadow: 0 8px 20px rgba(48,49,51,.16);
+      border-color: #d89a00;
+      color: #5d4100;
+      background: #ffd666;
+    }
+
+    body.annotation-open .prototype-annotation-toggle {
+      display: none;
+    }
+
+    body.drawer-open .prototype-annotation-toggle {
+      bottom: 82px;
+    }
+
     .empty {
       min-height: 170px;
       display: grid;
@@ -1124,10 +1287,10 @@
               <strong>音源资源</strong>
             </div>
           </div>
-          <div class="page-lang-tabs" id="pageLangTabs" aria-label="页面语言"></div>
+          <div class="page-lang-tabs" id="pageLangTabs" aria-label="页面语言" data-prototype-note-target="language-tabs"></div>
           <div class="subpage-body">
             <div class="toolbar">
-              <div class="actions toolbar-actions">
+              <div class="actions toolbar-actions" data-prototype-note-target="toolbar-actions">
                 <button class="btn" id="resetBtn">重置</button>
                 <button class="btn primary" id="searchBtn">查询</button>
                 <button class="btn primary" id="createBtn">新增资源</button>
@@ -1163,7 +1326,7 @@
                   </select>
                 </div>
               </div>
-              <div class="category-manager">
+              <div class="category-manager" data-prototype-note-target="category-manager">
                 <div>
                   <div class="category-title">分类标签</div>
                   <div class="category-tags" id="categoryTags"></div>
@@ -1217,6 +1380,18 @@
     </main>
   </div>
 
+  <aside class="prototype-annotation-panel" id="prototypeAnnotationPanel" aria-label="原型批注">
+    <div class="prototype-annotation-head">
+      <div class="prototype-annotation-title">
+        <span>原型批注</span>
+        <button class="btn" id="closePrototypeAnnotations" type="button">收起</button>
+      </div>
+      <div class="prototype-annotation-caption" id="prototypeAnnotationContext">黄色编号是批注锚点，不属于真实 IoT Admin 页面。</div>
+    </div>
+    <div class="prototype-annotation-list" id="prototypeAnnotationList"></div>
+  </aside>
+  <button class="btn prototype-annotation-toggle" id="openPrototypeAnnotations" type="button">原型批注</button>
+
   <div class="drawer-mask" id="drawerMask"></div>
   <aside class="drawer" aria-hidden="true">
     <div class="drawer-head">
@@ -1231,7 +1406,7 @@
         <section class="form-section">
           <div class="form-section-title">基础信息</div>
           <div class="form-grid">
-            <div class="field">
+            <div class="field" data-prototype-note-target="resource-id-language">
               <label for="formId">资源 id</label>
               <input id="formId" required autocomplete="off" placeholder="输入资源 id">
             </div>
@@ -1250,7 +1425,7 @@
           </div>
         </section>
 
-        <section class="form-section">
+        <section class="form-section" id="languageContentSection" data-prototype-note-target="language-content">
           <div class="form-section-title">多语言图片与歌曲名称</div>
           <div class="field">
             <label id="langImageLabel" for="formLangImage">英文（默认）图片</label>
@@ -1264,7 +1439,7 @@
 
         <section class="form-section">
           <div class="form-section-title">音源资源</div>
-          <div class="resource-mode">
+          <div class="resource-mode" data-prototype-note-target="source-mode">
             <div class="mode-option active" id="modeLocal" data-type="local">
               <div class="mode-title">本地</div>
               <div class="mode-desc">不要求 URL 或音频文件</div>
@@ -1450,6 +1625,50 @@
     const pageSize = 6;
     let activeLang = "en";
     let langDraft = {};
+    let annotationPanelOpen = false;
+    let activePrototypeNoteId = null;
+
+    const prototypeNotes = [
+      {
+        id: "toolbar-after-language",
+        target: "toolbar-actions",
+        title: "操作按钮层级",
+        body: "查询、重置和新增资源按钮放在页面语言 Tab 下方。页面语言 Tab 先确定当前维护语种，按钮区再处理查询和新增动作。",
+        loc: "页面语言 Tab 下方按钮区"
+      },
+      {
+        id: "category-lightweight",
+        target: "category-manager",
+        title: "分类轻量管理",
+        body: "分类标签只用于当前产品音源资源的整理和筛选，不扩展为独立分类中心。已被当前产品资源使用的分类删除时会被拦截。",
+        loc: "分类标签"
+      },
+      {
+        id: "same-id-language-slots",
+        target: "resource-id-language",
+        title: "多语言同 id 内容位",
+        body: "新增资源时用户只录入一次资源 id。保存后系统以 product_id + resource_id 建立同一个音源主体，并为全部语言初始化相同 id 的内容位；用户切换语言 Tab 后，只需要补该语言下的图片和名称。",
+        loc: "新增资源抽屉 / 资源 id",
+        openDrawer: true
+      },
+      {
+        id: "language-content-only",
+        target: "language-content",
+        title: "语言只影响图片和名称",
+        body: "语言参数 language 用来区分同一音源主体下的封面和名称内容，不生成新的资源 id，也不改变固件内烧录的音源 id。",
+        loc: "新增资源抽屉 / 多语言图片与歌曲名称",
+        openDrawer: true
+      },
+      {
+        id: "url-upload-tech-solution",
+        target: "source-mode",
+        title: "URL / 上传由技术方案确定",
+        body: "图片资源和在线音源资源在原型中都用 URL 或上传资源文件信息占位，最终控件、接口、上传策略和文件处理由技术方案确定。",
+        loc: "新增资源抽屉 / 音源资源",
+        openDrawer: true,
+        forceMode: "online"
+      }
+    ];
 
     const el = (id) => document.getElementById(id);
     const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
@@ -1493,6 +1712,95 @@
       const languages = normalizeLanguages(resource.languages);
       const configured = Object.values(languages).find((value) => value.image.trim());
       return languages.en.image.trim() || configured?.image.trim() || resource.image || "";
+    }
+
+    function prototypeNoteTarget(note) {
+      return document.querySelector(`[data-prototype-note-target="${note.target}"]`) || document.querySelector(note.target);
+    }
+
+    function clearPrototypeAnnotationAnchors() {
+      document.querySelectorAll(".prototype-note-anchor").forEach((anchor) => anchor.remove());
+      document.querySelectorAll(".prototype-note-host").forEach((target) => target.classList.remove("prototype-note-host"));
+      document.querySelectorAll(".prototype-note-target-active").forEach((target) => target.classList.remove("prototype-note-target-active"));
+    }
+
+    function targetInClosedDrawer(target) {
+      return Boolean(target.closest(".drawer")) && !document.body.classList.contains("drawer-open");
+    }
+
+    function focusPrototypeNote(note, { scroll = true } = {}) {
+      document.querySelectorAll(".prototype-note-card").forEach((card) => {
+        card.classList.toggle("active", card.dataset.noteId === note.id);
+      });
+      document.querySelectorAll(".prototype-note-target-active").forEach((target) => {
+        target.classList.remove("prototype-note-target-active");
+      });
+      const target = prototypeNoteTarget(note);
+      if (!target || targetInClosedDrawer(target)) return;
+      const box = target.closest(".form-section, .category-manager, .toolbar, .page-lang-tabs, .resource-mode, .field") || target;
+      box.classList.add("prototype-note-target-active");
+      if (scroll) box.scrollIntoView({ behavior: "smooth", block: "center" });
+      window.setTimeout(() => box.classList.remove("prototype-note-target-active"), 1800);
+    }
+
+    function renderPrototypeAnnotations() {
+      const list = el("prototypeAnnotationList");
+      if (!list) return;
+      clearPrototypeAnnotationAnchors();
+      if (!annotationPanelOpen) return;
+      if (!activePrototypeNoteId || !prototypeNotes.some((note) => note.id === activePrototypeNoteId)) {
+        activePrototypeNoteId = prototypeNotes[0]?.id || null;
+      }
+      el("prototypeAnnotationContext").textContent = document.body.classList.contains("drawer-open")
+        ? "当前抽屉批注。黄色编号不属于真实 IoT Admin 页面。"
+        : "当前页面批注。黄色编号不属于真实 IoT Admin 页面。";
+      list.innerHTML = prototypeNotes.map((note, index) => `
+        <button class="prototype-note-card ${note.id === activePrototypeNoteId ? "active" : ""}" type="button" data-note-id="${escapeHtml(note.id)}">
+          <span class="prototype-note-number">${index + 1}</span>
+          <span class="prototype-note-copy">
+            <strong>${escapeHtml(note.title)}</strong>
+            <p>${escapeHtml(note.body)}</p>
+            <span>关联位置：${escapeHtml(note.loc)}</span>
+          </span>
+        </button>
+      `).join("");
+      prototypeNotes.forEach((note, index) => {
+        const target = prototypeNoteTarget(note);
+        if (!target || targetInClosedDrawer(target)) return;
+        target.classList.add("prototype-note-host");
+        const anchor = document.createElement("button");
+        anchor.type = "button";
+        anchor.className = "prototype-note-anchor";
+        anchor.textContent = String(index + 1);
+        anchor.setAttribute("aria-label", `查看批注：${note.title}`);
+        anchor.addEventListener("click", () => activatePrototypeAnnotation(note.id));
+        target.append(anchor);
+      });
+      document.querySelectorAll(".prototype-note-card").forEach((card) => {
+        card.addEventListener("click", () => activatePrototypeAnnotation(card.dataset.noteId));
+      });
+      const activeNote = prototypeNotes.find((note) => note.id === activePrototypeNoteId);
+      if (activeNote) focusPrototypeNote(activeNote, { scroll: false });
+    }
+
+    function setPrototypeAnnotationsOpen(open) {
+      annotationPanelOpen = open;
+      document.body.classList.toggle("annotation-open", open);
+      renderPrototypeAnnotations();
+    }
+
+    function activatePrototypeAnnotation(id) {
+      activePrototypeNoteId = id;
+      const note = prototypeNotes.find((item) => item.id === id);
+      if (!note) return;
+      if (note.openDrawer && !document.body.classList.contains("drawer-open")) {
+        openDrawer();
+      }
+      if (note.forceMode) {
+        setResourceMode(note.forceMode);
+      }
+      renderPrototypeAnnotations();
+      window.setTimeout(() => focusPrototypeNote(note), 40);
     }
 
     function renderLanguageControls() {
@@ -1664,11 +1972,13 @@
       setActiveLang(selectedLang, { capture: false });
       document.body.classList.add("drawer-open");
       document.querySelector(".drawer").setAttribute("aria-hidden", "false");
+      renderPrototypeAnnotations();
     }
 
     function closeDrawer() {
       document.body.classList.remove("drawer-open");
       document.querySelector(".drawer").setAttribute("aria-hidden", "true");
+      renderPrototypeAnnotations();
     }
 
     function setResourceMode(type) {
@@ -1824,6 +2134,8 @@
     el("closeDrawer").addEventListener("click", closeDrawer);
     el("cancelDrawer").addEventListener("click", closeDrawer);
     el("saveResource").addEventListener("click", saveResource);
+    el("openPrototypeAnnotations").addEventListener("click", () => setPrototypeAnnotationsOpen(true));
+    el("closePrototypeAnnotations").addEventListener("click", () => setPrototypeAnnotationsOpen(false));
     document.querySelectorAll(".mode-option").forEach((node) => {
       node.addEventListener("click", () => setResourceMode(node.dataset.type));
     });
@@ -1844,6 +2156,7 @@
     renderLanguageControls();
     renderCategoryControls();
     setActiveLang("en");
+    setPrototypeAnnotationsOpen(false);
     applyFilters(true);
   </script>
 </body>
