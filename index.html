@@ -967,6 +967,27 @@
       font-size: 13px;
     }
 
+    .import-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .upload-box {
+      border: 1px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+      background: #fbfcff;
+    }
+
+    .upload-meta {
+      color: var(--secondary);
+      font-size: 12px;
+    }
+
     .toast {
       position: fixed;
       left: 50%;
@@ -1427,15 +1448,21 @@
     </div>
     <div class="modal-body">
       <div class="notice">导入模板中的音源 ID 列必须按文本处理，避免 `00` 被表格软件转成 `0`。</div>
-      <div class="field">
-        <label for="importTextarea">导入内容示例</label>
-        <textarea id="importTextarea">10,local,助眠场景,助眠|白噪音
-11,online,自然声合集,自然声,https://cdn.example.com/audio/wn08/forest.mp3</textarea>
+      <div class="import-actions">
+        <button class="btn subtle" id="downloadImportTemplateBtn" type="button">下载导入模板</button>
+        <span class="muted">模板包含音源 ID、类型、归属类别、标签、在线资源字段。</span>
+      </div>
+      <div class="upload-box">
+        <div class="field">
+          <label for="importFileInput"><span class="required-mark">*</span>上传导入文件</label>
+          <input id="importFileInput" type="file" accept=".csv,.xlsx,.xls">
+        </div>
+        <div class="upload-meta" id="importFileName">未选择文件</div>
       </div>
     </div>
     <div class="modal-foot">
       <button class="btn" data-close-modal>取消</button>
-      <button class="btn primary" id="simulateImportBtn">模拟导入</button>
+      <button class="btn primary" id="simulateImportBtn">上传并模拟导入</button>
     </div>
   </section>
 
@@ -1604,8 +1631,9 @@
     const productByModel = (model) => products.find((item) => item.model === model);
 
     function audioCategoryIds(audio = {}) {
-      if (Array.isArray(audio.categoryIds)) return audio.categoryIds.filter(Boolean);
-      return audio.categoryId ? [audio.categoryId] : [];
+      const source = audio || {};
+      if (Array.isArray(source.categoryIds)) return source.categoryIds.filter(Boolean);
+      return source.categoryId ? [source.categoryId] : [];
     }
 
     function setAudioCategoryIds(audio, ids) {
@@ -2271,13 +2299,55 @@
       showToast("标签已删除");
     }
 
-    function simulateImport() {
-      const lines = el("importTextarea").value.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+    const importTemplateRows = [
+      { id: "10", type: "local", categoryNames: "助眠场景", tags: "助眠|白噪音", source: "" },
+      { id: "11", type: "online", categoryNames: "自然声合集", tags: "自然声", source: "https://cdn.example.com/audio/wn08/forest.mp3" }
+    ];
+
+    function csvCell(value) {
+      const text = String(value ?? "");
+      return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+    }
+
+    function downloadImportTemplate() {
+      const header = ["audio_id", "type", "category_names", "tags", "source"];
+      const rows = importTemplateRows.map((row) => [row.id, row.type, row.categoryNames, row.tags, row.source]);
+      const csv = [header, ...rows].map((row) => row.map(csvCell).join(",")).join("\n");
+      const blob = new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "audio-resource-import-template.csv";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      showToast("导入模板已下载");
+    }
+
+    function updateImportFileState() {
+      const file = el("importFileInput").files[0];
+      el("importFileName").textContent = file ? `${file.name} · ${Math.max(1, Math.ceil(file.size / 1024))} KB` : "未选择文件";
+    }
+
+    function parseImportCsv(text) {
+      const lines = text.split(/\r?\n+/).map((line) => line.trim()).filter(Boolean);
+      if (!lines.length) return [];
+      const dataLines = /^audio_id|^音源/i.test(lines[0]) ? lines.slice(1) : lines;
+      return dataLines.map((line) => {
+        const [id, type = "local", categoryNames = "", tagsValue = "", source = ""] = line.split(",").map((part) => part.trim());
+        return { id, type, categoryNames, tags: tagsValue, source };
+      });
+    }
+
+    function applyImportRows(rows, fileName) {
       let added = 0;
-      lines.forEach((line) => {
-        const [id, type = "local", categoryNameValue = "", tagValue = "", source = ""] = line.split(",").map((part) => part.trim());
+      rows.forEach(({ id, type = "local", categoryNames = "", tags: tagValue = "", source = "" }) => {
         if (!id || id.length > 32 || audioSources.some((audio) => audio.id === id)) return;
-        const category = categories.find((item) => item.name === categoryNameValue);
+        const categoryIds = categoryNames.split("|").map((name) => {
+          const category = categories.find((item) => item.name === name.trim());
+          return category?.id || "";
+        }).filter(Boolean);
         const tagList = tagValue ? tagValue.split("|").map((part) => part.trim()).filter(Boolean) : [];
         tagList.forEach((tag) => {
           if (!tags.includes(tag)) tags.push(tag);
@@ -2286,16 +2356,32 @@
           id,
           type: type === "online" ? "online" : "local",
           source: type === "online" ? source : "",
-          categoryIds: category ? [category.id] : [],
+          categoryIds,
           tags: tagList,
           updated: todayString()
         });
-        if (category && !category.audioIds.includes(id)) category.audioIds.push(id);
+        categoryIds.forEach((categoryId) => {
+          const category = categoryById(categoryId);
+          if (category && !category.audioIds.includes(id)) category.audioIds.push(id);
+        });
         added += 1;
       });
       closeModal();
       renderAll();
-      showToast(`已模拟导入 ${added} 条音源`);
+      showToast(`已从 ${fileName} 模拟导入 ${added} 条音源`);
+    }
+
+    function simulateImport() {
+      const file = el("importFileInput").files[0];
+      if (!file) return showToast("请先上传导入文件", "error");
+      if (/\.csv$/i.test(file.name)) {
+        const reader = new FileReader();
+        reader.onload = () => applyImportRows(parseImportCsv(reader.result || ""), file.name);
+        reader.onerror = () => showToast("文件读取失败，请重新上传", "error");
+        reader.readAsText(file);
+        return;
+      }
+      applyImportRows(importTemplateRows, file.name);
     }
 
     function openModal(id) {
@@ -2304,6 +2390,10 @@
         modal.classList.toggle("active", modal.id === id);
         modal.setAttribute("aria-hidden", modal.id === id ? "false" : "true");
       });
+      if (id === "importModal") {
+        el("importFileInput").value = "";
+        updateImportFileState();
+      }
     }
 
     function closeModal() {
@@ -2502,6 +2592,8 @@
     el("modalMask").addEventListener("click", closeModal);
     document.querySelectorAll("[data-close-modal]").forEach((button) => button.addEventListener("click", closeModal));
     el("confirmActionBtn").addEventListener("click", confirmDeleteAudio);
+    el("downloadImportTemplateBtn").addEventListener("click", downloadImportTemplate);
+    el("importFileInput").addEventListener("change", updateImportFileState);
     el("simulateImportBtn").addEventListener("click", simulateImport);
 
     el("openPrototypeAnnotations").addEventListener("click", () => setPrototypeAnnotationsOpen(true));
