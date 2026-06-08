@@ -924,6 +924,7 @@
       left: 50%;
       width: 520px;
       max-width: calc(100vw - 40px);
+      max-height: calc(100vh - 48px);
       background: #fff;
       border-radius: var(--radius);
       box-shadow: var(--shadow);
@@ -932,6 +933,9 @@
       pointer-events: none;
       z-index: 40;
       transition: opacity .18s ease, transform .18s ease;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      overflow: hidden;
     }
 
     body.modal-open .modal.active {
@@ -965,6 +969,12 @@
       padding: 16px;
       display: grid;
       gap: 14px;
+      min-height: 0;
+      overflow: auto;
+    }
+
+    #importModal {
+      width: 640px;
     }
 
     .notice {
@@ -1004,6 +1014,22 @@
       padding: 12px;
       display: grid;
       gap: 10px;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    #audioImportFailureWrap {
+      max-height: min(260px, 30vh);
+      border: 1px solid var(--border-light);
+      background: #fff;
+    }
+
+    #audioImportFailureWrap table {
+      min-width: 560px;
+    }
+
+    #audioImportFailureWrap th:first-child {
+      width: 160px;
     }
 
     .progress-track {
