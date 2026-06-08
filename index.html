@@ -432,6 +432,15 @@
       color: var(--regular);
     }
 
+    .tag-chip.disabled {
+      opacity: .56;
+      cursor: not-allowed;
+    }
+
+    .tag-chip input:disabled {
+      cursor: not-allowed;
+    }
+
     .tag-chip button {
       border: 0;
       background: transparent;
@@ -1305,6 +1314,9 @@
                   <div class="panel-meta" id="categoryDetailMeta">选择左侧类别查看配置</div>
                 </div>
                 <div class="actions">
+                  <button class="btn" id="exportCategoryConfigBtn" data-prototype-note-target="category-export-import">导出配置表</button>
+                  <button class="btn" id="uploadCategoryConfigBtn">上传覆盖</button>
+                  <input class="hidden" id="categoryConfigImportInput" type="file" accept=".csv,.xlsx,.xls">
                   <button class="btn" id="editCategoryBtn">编辑类别</button>
                   <button class="btn" id="copyCategoryBtn" data-prototype-note-target="category-copy">复制类别</button>
                   <button class="btn danger" id="deleteCategoryBtn">删除类别</button>
@@ -1332,7 +1344,7 @@
                   <select id="associateAudioSelect"></select>
                 </div>
                 <button class="btn primary" id="associateAudioBtn">关联音源</button>
-                <div class="muted">同一音源 ID 可以出现在多个类别中；类别内的多语言配置相互独立。</div>
+                <div class="muted">同一音源 ID 可以出现在多个类别中；类别内的多语言配置相互独立。可导出表格编辑后上传覆盖当前类别多语言配置。</div>
               </div>
               <div class="table-wrap language-table">
                 <table>
@@ -1510,7 +1522,7 @@
         id: "cat-sleep",
         name: "助眠场景",
         desc: "睡前播放的基础音源集合",
-        products: ["WN08", "BM08"],
+        products: ["WN08"],
         audioIds: ["00", "33"],
         configs: {
           "00": {
@@ -1528,7 +1540,7 @@
         id: "cat-nature",
         name: "自然声合集",
         desc: "自然环境音源",
-        products: ["WN08", "BM08"],
+        products: ["BM08"],
         audioIds: ["33", "691d1e0580873df5045be021", "00"],
         configs: {
           "33": {
@@ -1606,6 +1618,20 @@
         loc: "音源类别详情"
       },
       {
+        id: "category-export-import",
+        target: "category-export-import",
+        title: "类别配置导出 / 上传",
+        body: "音源类别支持导出关联 id 列表和多语言配置，用户线下编辑表格后上传，覆盖当前类别下同 id 的多语言内容。",
+        loc: "类别详情操作区"
+      },
+      {
+        id: "exclusive-product",
+        target: "exclusive-product",
+        title: "授权产品互斥",
+        body: "同一个产品只能授权给一个音源类别；某产品被一个类别授权后，其他类别编辑时不可再选择该产品。",
+        loc: "类别编辑抽屉"
+      },
+      {
         id: "copy",
         target: "category-copy",
         title: "复制类别范围",
@@ -1629,6 +1655,8 @@
     const categoryById = (id) => categories.find((item) => item.id === id);
     const audioById = (id) => audioSources.find((item) => item.id === id);
     const productByModel = (model) => products.find((item) => item.model === model);
+    const categoryProductOwner = (model, currentCategoryId = "") =>
+      categories.find((item) => item.id !== currentCategoryId && item.products.includes(model));
 
     function audioCategoryIds(audio = {}) {
       const source = audio || {};
@@ -1804,7 +1832,7 @@
     function renderCategoryDetail() {
       const category = categoryById(activeCategoryId);
       const disabled = !category;
-      ["editCategoryBtn", "copyCategoryBtn", "deleteCategoryBtn", "associateAudioBtn"].forEach((id) => {
+      ["exportCategoryConfigBtn", "uploadCategoryConfigBtn", "editCategoryBtn", "copyCategoryBtn", "deleteCategoryBtn", "associateAudioBtn"].forEach((id) => {
         el(id).disabled = disabled;
       });
       if (!category) {
@@ -2055,13 +2083,20 @@
           </section>
           <section class="form-section">
             <div class="form-section-title">授权产品<span class="optional-mark">选填</span></div>
+            <div class="notice" data-prototype-note-target="exclusive-product">同一产品只能授权给一个音源类别；已授权给其他类别的产品在这里不可选。</div>
             <div class="product-checks" id="categoryProductChecks">
-              ${products.map((product) => `
-                <label class="tag-chip">
-                  <input type="checkbox" value="${escapeHtml(product.model)}" ${selectedProducts.has(product.model) ? "checked" : ""}>
-                  <span>${escapeHtml(product.model)} - ${escapeHtml(product.name)}</span>
-                </label>
-              `).join("")}
+              ${products.map((product) => {
+                const owner = categoryProductOwner(product.model, editingCategoryId);
+                const checked = selectedProducts.has(product.model);
+                const disabled = !!owner;
+                return `
+                  <label class="tag-chip ${disabled ? "disabled" : ""}">
+                    <input type="checkbox" value="${escapeHtml(product.model)}" ${checked ? "checked" : ""} ${disabled ? "disabled" : ""}>
+                    <span>${escapeHtml(product.model)} - ${escapeHtml(product.name)}</span>
+                    ${disabled ? `<span class="muted">已授权给${escapeHtml(owner.name)}</span>` : ""}
+                  </label>
+                `;
+              }).join("")}
             </div>
           </section>
         `,
@@ -2073,6 +2108,10 @@
       const name = el("categoryNameInput").value.trim();
       if (!name) return showToast("类别名称不能为空", "error");
       const productsSelected = Array.from(document.querySelectorAll("#categoryProductChecks input:checked")).map((input) => input.value);
+      const conflictProduct = productsSelected.find((model) => categoryProductOwner(model, editingCategoryId));
+      if (conflictProduct) {
+        return showToast(`${conflictProduct} 已授权给其他类别`, "error");
+      }
       if (editingCategoryId) {
         const category = categoryById(editingCategoryId);
         category.name = name;
@@ -2152,6 +2191,115 @@
       closeDrawer();
       renderAll();
       showToast("语言配置已保存");
+    }
+
+    function downloadCsv(filename, rows) {
+      const csv = rows.map((row) => row.map(csvCell).join(",")).join("\n");
+      const blob = new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function categoryConfigHeader() {
+      return [
+        "audio_id",
+        "audio_tags",
+        ...languageCodes.flatMap((code) => [`${code}_name`, `${code}_image`, `${code}_asset`])
+      ];
+    }
+
+    function categoryConfigRows(category) {
+      return category.audioIds.map((audioId) => {
+        const audio = audioById(audioId);
+        return [
+          audioId,
+          audio?.tags.join("|") || "",
+          ...languageCodes.flatMap((code) => {
+            const config = normalizeConfig(category, audioId, code);
+            return [config.name, config.image, config.asset];
+          })
+        ];
+      });
+    }
+
+    function exportActiveCategoryConfig() {
+      const category = categoryById(activeCategoryId);
+      if (!category) return showToast("请先选择音源类别", "error");
+      const filename = `audio-category-${category.name.replace(/[\\/:*?"<>|]/g, "-")}-multilingual.csv`;
+      downloadCsv(filename, [categoryConfigHeader(), ...categoryConfigRows(category)]);
+      showToast("已生成类别配置表");
+    }
+
+    function uploadActiveCategoryConfig() {
+      if (!categoryById(activeCategoryId)) return showToast("请先选择音源类别", "error");
+      el("categoryConfigImportInput").value = "";
+      el("categoryConfigImportInput").click();
+    }
+
+    function splitCsvLine(line) {
+      return line.split(",").map((part) => part.trim().replace(/^"|"$/g, "").replace(/""/g, '"'));
+    }
+
+    function parseCategoryConfigCsv(text) {
+      const lines = text.split(/\r?\n+/).map((line) => line.trim()).filter(Boolean);
+      if (lines.length < 2) return [];
+      const header = splitCsvLine(lines[0]);
+      const indexOf = (key) => header.indexOf(key);
+      return lines.slice(1).map((line) => {
+        const values = splitCsvLine(line);
+        const row = { audioId: values[indexOf("audio_id")] || "", configs: {} };
+        languageCodes.forEach((code) => {
+          row.configs[code] = {
+            name: values[indexOf(`${code}_name`)] || "",
+            image: values[indexOf(`${code}_image`)] || "",
+            asset: values[indexOf(`${code}_asset`)] || ""
+          };
+        });
+        return row;
+      });
+    }
+
+    function applyCategoryConfigRows(category, rows, fileName) {
+      let updated = 0;
+      rows.forEach((row) => {
+        if (!row.audioId || !category.audioIds.includes(row.audioId)) return;
+        category.configs ||= {};
+        category.configs[row.audioId] ||= {};
+        languageCodes.forEach((code) => {
+          category.configs[row.audioId][code] = row.configs[code] || { name: "", image: "", asset: "" };
+        });
+        updated += 1;
+      });
+      renderAll();
+      showToast(`已从 ${fileName} 覆盖 ${updated} 个音源的多语言配置`);
+    }
+
+    function handleCategoryConfigImport() {
+      const category = categoryById(activeCategoryId);
+      const file = el("categoryConfigImportInput").files[0];
+      if (!category || !file) return;
+      if (!/\.csv$/i.test(file.name)) {
+        const rows = categoryConfigRows(category).map((row) => {
+          const configs = {};
+          languageCodes.forEach((code, index) => {
+            const offset = 2 + index * 3;
+            configs[code] = { name: row[offset], image: row[offset + 1], asset: row[offset + 2] };
+          });
+          return { audioId: row[0], configs };
+        });
+        applyCategoryConfigRows(category, rows, file.name);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => applyCategoryConfigRows(category, parseCategoryConfigCsv(reader.result || ""), file.name);
+      reader.onerror = () => showToast("文件读取失败，请重新上传", "error");
+      reader.readAsText(file);
     }
 
     function openBatchDrawer(type) {
@@ -2565,6 +2713,9 @@
     el("editCategoryBtn").addEventListener("click", () => openCategoryDrawer(categoryById(activeCategoryId)));
     el("copyCategoryBtn").addEventListener("click", copyActiveCategory);
     el("deleteCategoryBtn").addEventListener("click", deleteActiveCategory);
+    el("exportCategoryConfigBtn").addEventListener("click", exportActiveCategoryConfig);
+    el("uploadCategoryConfigBtn").addEventListener("click", uploadActiveCategoryConfig);
+    el("categoryConfigImportInput").addEventListener("change", handleCategoryConfigImport);
     el("associateAudioBtn").addEventListener("click", associateAudioToCategory);
     el("categoryConfigRows").addEventListener("click", (event) => {
       const button = event.target.closest("[data-edit-lang]");
