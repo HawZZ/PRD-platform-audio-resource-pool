@@ -62,6 +62,27 @@
       grid-template-columns: 208px minmax(0, 1fr);
     }
 
+    .prototype-toolbar {
+      min-height: 40px;
+      padding: 6px 16px;
+      background: #fff9e8;
+      border-bottom: 1px solid #f2d27a;
+      color: #8a5a00;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 13px;
+    }
+
+    .prototype-toolbar-title {
+      font-weight: 600;
+    }
+
+    body.annotation-open .prototype-toolbar {
+      display: none;
+    }
+
     body.annotation-open .app {
       grid-template-columns: 208px minmax(0, 1fr) 410px;
     }
@@ -1082,21 +1103,18 @@
     }
 
     .prototype-annotation-toggle {
-      position: fixed;
-      right: 16px;
-      bottom: 18px;
-      z-index: 70;
       background: #fff9e8;
       border-color: #f2d27a;
       color: #8a5a00;
     }
-
-    body.annotation-open .prototype-annotation-toggle {
-      display: none;
-    }
   </style>
 </head>
 <body>
+  <div class="prototype-toolbar" id="prototypeToolbar">
+    <span class="prototype-toolbar-title">原型批注面板</span>
+    <button class="btn prototype-annotation-toggle" id="openPrototypeAnnotations" type="button">展开批注</button>
+  </div>
+
   <div class="app">
     <aside class="sidebar">
       <div class="brand"><span class="brand-mark">IoT</span><span>IoT Admin</span></div>
@@ -1378,7 +1396,6 @@
       <div class="prototype-annotation-list" id="prototypeAnnotationList"></div>
     </aside>
   </div>
-  <button class="btn prototype-annotation-toggle" id="openPrototypeAnnotations" type="button">原型批注</button>
 
   <div class="drawer-mask" id="drawerMask"></div>
   <aside class="drawer" id="mainDrawer" aria-hidden="true">
