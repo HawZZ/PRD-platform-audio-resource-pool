@@ -1640,6 +1640,7 @@
     let langDraft = {};
     let annotationPanelOpen = false;
     let activePrototypeNoteId = null;
+    const uncategorizedFilterValue = "__uncategorized__";
 
     const prototypeNotes = [
       {
@@ -1653,7 +1654,7 @@
         id: "category-lightweight",
         target: "category-manager",
         title: "分类轻量管理",
-        body: "分类标签只用于当前产品音源资源的整理和筛选，不扩展为独立分类中心。新增 / 编辑资源时分类为选填，可留空；已被当前产品资源使用的分类删除时会被拦截。",
+        body: "分类标签只用于当前产品音源资源的整理和筛选，不扩展为独立分类中心。新增 / 编辑资源时分类为选填，可留空；列表筛选支持单独筛“不分类”资源；已被当前产品资源使用的分类删除时会被拦截。",
         loc: "分类标签"
       },
       {
@@ -1828,12 +1829,13 @@
     function renderCategoryControls() {
       const optionHtml = [
         `<option value="">全部分类</option>`,
+        `<option value="${uncategorizedFilterValue}">不分类</option>`,
         ...categories.map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`)
       ].join("");
       const currentFilter = el("filterCategory").value;
       const currentForm = el("formCategory").value;
       el("filterCategory").innerHTML = optionHtml;
-      el("filterCategory").value = categories.includes(currentFilter) ? currentFilter : "";
+      el("filterCategory").value = currentFilter === uncategorizedFilterValue || categories.includes(currentFilter) ? currentFilter : "";
       el("formCategory").innerHTML = [
         `<option value="">不分类</option>`,
         ...categories.map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`)
@@ -1886,11 +1888,13 @@
         const nameHit = !filters.name || languageValues.some((value) =>
           value.name.toLowerCase().includes(filters.name)
         );
+        const categoryHit = !filters.category ||
+          (filters.category === uncategorizedFilterValue ? !item.category : item.category === filters.category);
         return item.productId === currentProduct.productId &&
           (!filters.id || item.id.includes(filters.id)) &&
           nameHit &&
           (!filters.type || item.type === filters.type) &&
-          (!filters.category || item.category === filters.category) &&
+          categoryHit &&
           (!filters.status || item.status === filters.status);
       });
       if (resetPage) currentPage = 1;
