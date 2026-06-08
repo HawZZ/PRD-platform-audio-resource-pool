@@ -486,6 +486,11 @@
       background: #f1f2f5;
     }
 
+    .tag.missing {
+      color: #8a5a00;
+      background: #fff4d6;
+    }
+
     .batch-bar {
       min-height: 42px;
       padding: 9px 12px;
@@ -1032,6 +1037,20 @@
       width: 160px;
     }
 
+    #categoryImportFailureWrap {
+      max-height: min(260px, 30vh);
+      border: 1px solid var(--border-light);
+      background: #fff;
+    }
+
+    #categoryImportFailureWrap table {
+      min-width: 560px;
+    }
+
+    #categoryImportFailureWrap th:first-child {
+      width: 160px;
+    }
+
     .progress-track {
       height: 8px;
       border-radius: 999px;
@@ -1403,29 +1422,6 @@
                 <button class="btn primary" id="associateAudioBtn">关联音源</button>
                 <div class="muted">同一音源 ID 可以出现在多个类别中；类别内的多语言配置相互独立。可导出表格编辑后上传覆盖当前类别多语言配置。</div>
               </div>
-              <div class="import-result hidden" id="categoryImportStatus">
-                <div class="result-summary">
-                  <strong id="categoryImportProgressText">等待导入</strong>
-                  <span id="categoryImportSummary">总导入数 0 / 成功 0 / 失败 0</span>
-                </div>
-                <div class="progress-track">
-                  <div class="progress-fill" id="categoryImportProgressFill"></div>
-                </div>
-                <div class="table-wrap hidden" id="categoryImportFailureWrap">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>音源 ID</th>
-                        <th>失败原因</th>
-                      </tr>
-                    </thead>
-                    <tbody id="categoryImportFailureRows"></tbody>
-                  </table>
-                </div>
-                <div class="actions">
-                  <button class="btn" id="downloadCategoryFailureBtn" disabled>下载失败明细</button>
-                </div>
-              </div>
               <div class="table-wrap language-table">
                 <table>
                   <thead id="categoryConfigHead"></thead>
@@ -1578,6 +1574,39 @@
     <div class="modal-foot">
       <button class="btn" data-close-modal>取消</button>
       <button class="btn primary" id="simulateImportBtn">上传并模拟导入</button>
+    </div>
+  </section>
+
+  <section class="modal" id="categoryImportResultModal" aria-hidden="true">
+    <div class="modal-head">
+      <div class="modal-title">上传覆盖结果</div>
+      <button class="icon-btn" data-close-modal aria-label="关闭">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="import-result hidden" id="categoryImportStatus">
+        <div class="result-summary">
+          <strong id="categoryImportProgressText">等待导入</strong>
+          <span id="categoryImportSummary">总导入数 0 / 成功 0 / 失败 0</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="categoryImportProgressFill"></div>
+        </div>
+        <div class="table-wrap hidden" id="categoryImportFailureWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>音源 ID</th>
+                <th>失败原因</th>
+              </tr>
+            </thead>
+            <tbody id="categoryImportFailureRows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" id="downloadCategoryFailureBtn" disabled>下载失败明细</button>
+      <button class="btn primary" data-close-modal>关闭</button>
     </div>
   </section>
 
@@ -1982,12 +2011,15 @@
           : `<span class="muted">--</span>`;
         const cells = languageCodes.map((code) => {
           const config = normalizeConfig(category, audioId, code);
+          const assetHtml = config.asset
+            ? `<span title="${escapeHtml(config.asset)}">源：${escapeHtml(config.asset)}</span>`
+            : `<span class="tag missing">源：缺少配置</span>`;
           return `
             <td>
               <div class="language-cell">
                 <strong title="${escapeHtml(config.name || "")}">${escapeHtml(config.name || "未配置名称")}</strong>
                 <span title="${escapeHtml(config.image || "")}">图：${escapeHtml(config.image || "--")}</span>
-                <span title="${escapeHtml(config.asset || "")}">源：${escapeHtml(config.asset || "--")}</span>
+                ${assetHtml}
                 <button class="btn link" data-edit-lang="${escapeHtml(category.id)}" data-audio-id="${escapeHtml(audioId)}" data-lang="${escapeHtml(code)}">编辑</button>
               </div>
             </td>
@@ -2428,6 +2460,17 @@
       `).join("");
     }
 
+    function resetCategoryImportResult() {
+      categoryImportFailures = [];
+      el("categoryImportStatus").classList.add("hidden");
+      el("categoryImportProgressFill").style.width = "0";
+      el("categoryImportProgressText").textContent = "等待导入";
+      el("categoryImportSummary").textContent = "总导入数 0 / 成功 0 / 失败 0";
+      el("categoryImportFailureWrap").classList.add("hidden");
+      el("downloadCategoryFailureBtn").disabled = true;
+      el("categoryImportFailureRows").innerHTML = "";
+    }
+
     function applyCategoryConfigRows(category, rows, fileName) {
       const result = { total: rows.length, success: 0, failures: [] };
       rows.forEach((row) => {
@@ -2469,10 +2512,9 @@
       const category = categoryById(activeCategoryId);
       const file = el("categoryConfigImportInput").files[0];
       if (!category || !file) return;
+      resetCategoryImportResult();
+      openModal("categoryImportResultModal");
       setCategoryImportProgress(12, "读取文件中");
-      el("categoryImportSummary").textContent = "总导入数 0 / 成功 0 / 失败 0";
-      el("categoryImportFailureWrap").classList.add("hidden");
-      el("downloadCategoryFailureBtn").disabled = true;
       if (!/\.csv$/i.test(file.name)) {
         setCategoryImportProgress(100, "导入完成");
         renderCategoryImportResult({
