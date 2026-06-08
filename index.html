@@ -383,6 +383,19 @@
       font-size: 13px;
     }
 
+    .required-mark {
+      color: var(--danger);
+      margin-right: 4px;
+      font-weight: 600;
+    }
+
+    .optional-mark {
+      color: var(--secondary);
+      margin-left: 4px;
+      font-size: 12px;
+      font-weight: 400;
+    }
+
     input,
     select,
     textarea {
@@ -1407,16 +1420,16 @@
           <div class="form-section-title">基础信息</div>
           <div class="form-grid">
             <div class="field" data-prototype-note-target="resource-id-language">
-              <label for="formId">资源 id</label>
+              <label for="formId"><span class="required-mark">*</span>资源 id</label>
               <input id="formId" required autocomplete="off" placeholder="输入资源 id">
             </div>
             <div class="field">
-              <label for="formCategory">分类</label>
+              <label for="formCategory">分类<span class="optional-mark">选填</span></label>
               <select id="formCategory"></select>
             </div>
             <div class="field">
-              <label for="formStatus">资源状态</label>
-              <select id="formStatus">
+              <label for="formStatus"><span class="required-mark">*</span>资源状态</label>
+              <select id="formStatus" required>
                 <option value="draft">草稿</option>
                 <option value="published">已发布</option>
                 <option value="disabled">停用</option>
@@ -1428,17 +1441,17 @@
         <section class="form-section" id="languageContentSection" data-prototype-note-target="language-content">
           <div class="form-section-title">多语言图片与歌曲名称</div>
           <div class="field">
-            <label id="langImageLabel" for="formLangImage">英文（默认）图片</label>
-            <input id="formLangImage" autocomplete="off" placeholder="输入图片 URL 或上传资源文件信息">
+            <label for="formLangImage"><span class="required-mark">*</span><span id="langImageLabel">英文（默认）图片</span></label>
+            <input id="formLangImage" required autocomplete="off" placeholder="输入图片 URL 或上传资源文件信息">
           </div>
           <div class="field">
-            <label id="langInputLabel" for="formLangName">英文（默认）名称</label>
-            <input id="formLangName" autocomplete="off">
+            <label for="formLangName"><span class="required-mark">*</span><span id="langInputLabel">英文（默认）名称</span></label>
+            <input id="formLangName" required autocomplete="off">
           </div>
         </section>
 
         <section class="form-section">
-          <div class="form-section-title">音源资源</div>
+          <div class="form-section-title"><span class="required-mark">*</span>音源资源</div>
           <div class="resource-mode" data-prototype-note-target="source-mode">
             <div class="mode-option active" id="modeLocal" data-type="local">
               <div class="mode-title">本地</div>
@@ -1451,7 +1464,7 @@
           </div>
           <input type="hidden" id="formType" value="local">
           <div class="field hidden" id="onlineField">
-            <label for="formOnlineValue">在线音源资源</label>
+            <label for="formOnlineValue"><span class="required-mark">*</span>在线音源资源</label>
             <textarea id="formOnlineValue" placeholder="输入音源 URL 或上传资源文件信息"></textarea>
           </div>
           <div class="notice" id="drawerNotice">已发布资源不建议修改资源 id。</div>
@@ -1640,7 +1653,7 @@
         id: "category-lightweight",
         target: "category-manager",
         title: "分类轻量管理",
-        body: "分类标签只用于当前产品音源资源的整理和筛选，不扩展为独立分类中心。已被当前产品资源使用的分类删除时会被拦截。",
+        body: "分类标签只用于当前产品音源资源的整理和筛选，不扩展为独立分类中心。新增 / 编辑资源时分类为选填，可留空；已被当前产品资源使用的分类删除时会被拦截。",
         loc: "分类标签"
       },
       {
@@ -1821,10 +1834,11 @@
       const currentForm = el("formCategory").value;
       el("filterCategory").innerHTML = optionHtml;
       el("filterCategory").value = categories.includes(currentFilter) ? currentFilter : "";
-      el("formCategory").innerHTML = categories.map((category) =>
-        `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`
-      ).join("");
-      el("formCategory").value = categories.includes(currentForm) ? currentForm : categories[0] || "";
+      el("formCategory").innerHTML = [
+        `<option value="">不分类</option>`,
+        ...categories.map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`)
+      ].join("");
+      el("formCategory").value = categories.includes(currentForm) ? currentForm : "";
       el("categoryTags").innerHTML = categories.map((category) => `
         <span class="category-chip">
           <span>${escapeHtml(category)}</span>
@@ -1961,7 +1975,7 @@
       el("formProduct").value = resource?.productModel || currentProduct.productModel;
       el("formId").value = resource?.id || "";
       renderCategoryControls();
-      el("formCategory").value = resource?.category || categories[0] || "";
+      el("formCategory").value = resource?.category && categories.includes(resource.category) ? resource.category : "";
       el("formStatus").value = resource?.status || "draft";
       el("formType").value = resource?.type || "local";
       el("formOnlineValue").value = resource?.onlineValue || "";
@@ -1987,6 +2001,7 @@
         node.classList.toggle("active", node.dataset.type === type);
       });
       el("onlineField").classList.toggle("hidden", type !== "online");
+      el("formOnlineValue").required = type === "online";
     }
 
     function setActiveLang(lang, { capture = true } = {}) {
@@ -2005,7 +2020,7 @@
       captureActiveLang();
       const productId = el("formProductId").value;
       const productModel = el("formProduct").value;
-      const id = el("formId").value;
+      const id = el("formId").value.trim();
       const category = el("formCategory").value;
       const editingKey = el("editingKey").value;
       const old = editingKey ? findByKey(editingKey) : null;
@@ -2013,20 +2028,26 @@
         showToast("资源 id 不能为空", "error");
         return;
       }
-      if (!category) {
-        showToast("请选择分类", "error");
+      if (!el("formStatus").value) {
+        showToast("请选择资源状态", "error");
         return;
       }
-      if (el("formStatus").value === "published" && !langDraft.en.name.trim()) {
-        showToast("发布前需要维护英文（默认）名称", "error");
+      const languageMeta = languageOptions[activeLang] || languageOptions.en;
+      const currentLanguageDraft = langDraft[activeLang] || { name: "", image: "" };
+      if (!currentLanguageDraft.image.trim()) {
+        showToast(`${languageMeta.label}图片不能为空`, "error");
         return;
       }
-      if (el("formStatus").value === "published" && !langDraft.en.image.trim()) {
-        showToast("发布前需要维护英文（默认）图片", "error");
+      if (!currentLanguageDraft.name.trim()) {
+        showToast(`${languageMeta.label}名称不能为空`, "error");
         return;
       }
-      if (el("formType").value === "online" && el("formStatus").value === "published" && !el("formOnlineValue").value.trim()) {
-        showToast("在线音源发布前需要维护 URL 或上传资源文件信息", "error");
+      if (!["local", "online"].includes(el("formType").value)) {
+        showToast("请选择音源资源类型", "error");
+        return;
+      }
+      if (el("formType").value === "online" && !el("formOnlineValue").value.trim()) {
+        showToast("在线音源需要维护 URL 或上传资源文件信息", "error");
         return;
       }
       const duplicate = resources.find((item) =>
@@ -2053,7 +2074,7 @@
         status: el("formStatus").value,
         updated: new Date().toISOString().slice(0, 16).replace("T", " "),
         cover: old?.cover || covers[resources.length % covers.length],
-        onlineValue: el("formOnlineValue").value,
+        onlineValue: el("formOnlineValue").value.trim(),
         languages: { ...langDraft }
       };
       if (old) {
