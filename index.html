@@ -486,11 +486,6 @@
       background: #f1f2f5;
     }
 
-    .tag.missing {
-      color: #8a5a00;
-      background: #fff4d6;
-    }
-
     .batch-bar {
       min-height: 42px;
       padding: 9px 12px;
@@ -1734,7 +1729,7 @@
         id: "source-layer",
         target: "source-layer",
         title: "音源库只维护基础音源",
-        body: "音源库保存 id、本地或在线资源、一个或多个归属类别和标签。类别里的多语言名称、图片和 URL 配置在音源类别详情中维护。",
+        body: "音源库保存 id、本地或在线资源、一个或多个归属类别和标签。类别里的多语言名称和图片在音源类别详情中维护。",
         loc: "音源库筛选区"
       },
       {
@@ -1748,7 +1743,7 @@
         id: "category-independent",
         target: "category-independent",
         title: "类别内配置相互独立",
-        body: "同一个音源 id 可以关联到多个类别；不同类别下的名称、图片和 URL 配置互不影响。",
+        body: "同一个音源 id 可以关联到多个类别；不同类别下的名称和图片配置互不影响。音源 URL 按音源 id 在音源库维护。",
         loc: "音源类别详情"
       },
       {
@@ -2011,15 +2006,11 @@
           : `<span class="muted">--</span>`;
         const cells = languageCodes.map((code) => {
           const config = normalizeConfig(category, audioId, code);
-          const assetHtml = config.asset
-            ? `<span title="${escapeHtml(config.asset)}">源：${escapeHtml(config.asset)}</span>`
-            : `<span class="tag missing">源：缺少配置</span>`;
           return `
             <td>
               <div class="language-cell">
                 <strong title="${escapeHtml(config.name || "")}">${escapeHtml(config.name || "未配置名称")}</strong>
                 <span title="${escapeHtml(config.image || "")}">图：${escapeHtml(config.image || "--")}</span>
-                ${assetHtml}
                 <button class="btn link" data-edit-lang="${escapeHtml(category.id)}" data-audio-id="${escapeHtml(audioId)}" data-lang="${escapeHtml(code)}">编辑</button>
               </div>
             </td>
@@ -2062,7 +2053,7 @@
           <td><span class="mono">${escapeHtml(audio.id)}</span></td>
           <td><span class="tag category">${escapeHtml(category.name)}</span></td>
           <td><span class="tag ${audio.type === "online" ? "online" : "local"}">${audio.type === "online" ? "在线" : "本地"}</span></td>
-          <td><div class="resource-url" title="${escapeHtml(audio.source || sample.asset || "")}">${escapeHtml(audio.source || sample.asset || "--")}</div></td>
+          <td><div class="resource-url" title="${escapeHtml(audio.source || "")}">${escapeHtml(audio.source || "--")}</div></td>
           <td>
             <div class="stack">
               <span>${configuredCount}/${languageCodes.length}</span>
@@ -2302,7 +2293,7 @@
           </section>
           <section class="form-section" data-prototype-note-target="language-edit">
             <div class="form-section-title">多语言内容</div>
-            <div class="notice">批量上传覆盖只支持图片 URL 和音源 URL；如需上传附件，请在此单条编辑界面处理，具体上传控件由技术方案确定。</div>
+            <div class="notice">多语言内容只维护音源名称和图片；音源 URL 与音源 id 绑定，在音源库中维护。</div>
             <div class="field">
               <label for="langNameInput">音源名称</label>
               <input id="langNameInput" value="${escapeHtml(config.name)}" placeholder="输入该语言音源名称" autocomplete="off">
@@ -2310,10 +2301,6 @@
             <div class="field">
               <label for="langImageInput">音源图片</label>
               <input id="langImageInput" value="${escapeHtml(config.image)}" placeholder="输入图片 URL；附件上传由技术方案提供控件" autocomplete="off">
-            </div>
-            <div class="field">
-              <label for="langAssetInput">音源上传文件 URL / 音源录入 URL</label>
-              <textarea id="langAssetInput" placeholder="输入音源 URL；附件上传由技术方案提供控件">${escapeHtml(config.asset)}</textarea>
             </div>
           </section>
         `,
@@ -2324,11 +2311,12 @@
     function saveLanguageConfig() {
       const { categoryId, audioId, lang } = editingLanguageContext;
       const category = categoryById(categoryId);
+      const previous = normalizeConfig(category, audioId, lang);
       category.configs[audioId] ||= {};
       category.configs[audioId][lang] = {
+        ...previous,
         name: el("langNameInput").value.trim(),
-        image: el("langImageInput").value.trim(),
-        asset: el("langAssetInput").value.trim()
+        image: el("langImageInput").value.trim()
       };
       closeDrawer();
       renderAll();
@@ -2354,8 +2342,7 @@
         "音源标签",
         ...languageCodes.flatMap((code) => [
           `${languageOptions[code]}名称`,
-          `${languageOptions[code]}图片URL`,
-          `${languageOptions[code]}音源URL`
+          `${languageOptions[code]}图片URL`
         ])
       ];
     }
@@ -2368,7 +2355,7 @@
           audio?.tags.join("|") || "",
           ...languageCodes.flatMap((code) => {
             const config = normalizeConfig(category, audioId, code);
-            return [config.name, config.image, config.asset];
+            return [config.name, config.image];
           })
         ];
       });
@@ -2430,11 +2417,9 @@
         languageCodes.forEach((code) => {
           const nameIndex = headerIndex(header, [`${languageOptions[code]}名称`, `${code}_name`]);
           const imageIndex = headerIndex(header, [`${languageOptions[code]}图片URL`, `${code}_image`]);
-          const assetIndex = headerIndex(header, [`${languageOptions[code]}音源URL`, `${code}_asset`]);
           row.configs[code] = {
             name: values[nameIndex] || "",
-            image: values[imageIndex] || "",
-            asset: values[assetIndex] || ""
+            image: values[imageIndex] || ""
           };
         });
         return row;
@@ -2486,12 +2471,11 @@
         languageCodes.forEach((code) => {
           const config = row.configs[code] || {};
           if (!isUrlOrEmpty(config.image)) invalidFields.push(`${languageOptions[code]}图片URL不是 URL`);
-          if (!isUrlOrEmpty(config.asset)) invalidFields.push(`${languageOptions[code]}音源URL不是 URL`);
         });
         if (invalidFields.length) {
           result.failures.push({
             audioId: row.audioId,
-            reason: `${invalidFields.join("；")}；批量上传覆盖只支持 URL，附件上传请在单条语言编辑界面处理`
+            reason: `${invalidFields.join("；")}；批量上传覆盖的图片字段只支持 URL，图片附件上传请在单条语言编辑界面处理`
           });
           return;
         }
