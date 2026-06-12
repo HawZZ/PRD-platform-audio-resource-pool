@@ -681,7 +681,7 @@
     .association-bar {
       padding: 14px 16px;
       display: grid;
-      grid-template-columns: 280px auto minmax(0, 1fr);
+      grid-template-columns: 180px 280px auto minmax(0, 1fr);
       gap: 10px;
       align-items: end;
       border-bottom: 1px solid var(--border-light);
@@ -1419,6 +1419,10 @@
               </div>
               <div class="association-bar">
                 <div class="field">
+                  <label for="associateTagFilter">音源标签</label>
+                  <select id="associateTagFilter"></select>
+                </div>
+                <div class="field">
                   <label for="associateAudioSelect">关联音源 ID</label>
                   <select id="associateAudioSelect"></select>
                 </div>
@@ -1715,6 +1719,7 @@
     let filteredAudio = [...audioSources];
     let selectedAudioIds = new Set();
     let activeCategoryId = "cat-sleep";
+    let associateTagFilter = "";
     let activeDrawer = null;
     let editingAudioId = null;
     let editingCategoryId = null;
@@ -1991,10 +1996,25 @@
       el("detailCategoryName").textContent = category.name;
       el("detailCategoryDesc").textContent = category.desc || "无描述";
       el("detailCategoryProducts").textContent = category.products.length ? category.products.join("、") : "未授权产品";
-      const available = audioSources.filter((audio) => !category.audioIds.includes(audio.id));
+      if (associateTagFilter && associateTagFilter !== "__none__" && !tags.includes(associateTagFilter)) {
+        associateTagFilter = "";
+      }
+      el("associateTagFilter").innerHTML = [
+        `<option value="">全部标签</option>`,
+        `<option value="__none__">无标签</option>`,
+        ...tags.map((tag) => `<option value="${escapeHtml(tag)}">${escapeHtml(tag)}</option>`)
+      ].join("");
+      el("associateTagFilter").value = associateTagFilter;
+      const available = audioSources
+        .filter((audio) => !category.audioIds.includes(audio.id))
+        .filter((audio) => !associateTagFilter ||
+          (associateTagFilter === "__none__" ? !audio.tags.length : audio.tags.includes(associateTagFilter)));
       el("associateAudioSelect").innerHTML = available.length
-        ? available.map((audio) => `<option value="${escapeHtml(audio.id)}">${escapeHtml(audio.id)}</option>`).join("")
-        : `<option value="">暂无可关联音源</option>`;
+        ? available.map((audio) => {
+          const tagText = audio.tags.length ? `（${audio.tags.join("、")}）` : "（无标签）";
+          return `<option value="${escapeHtml(audio.id)}">${escapeHtml(audio.id)} ${escapeHtml(tagText)}</option>`;
+        }).join("")
+        : `<option value="">暂无匹配音源</option>`;
       renderCategoryConfigTable(category);
     }
 
@@ -3048,6 +3068,7 @@
       const item = event.target.closest("[data-category-id]");
       if (!item) return;
       activeCategoryId = item.dataset.categoryId;
+      associateTagFilter = "";
       renderCategoryList();
     });
     el("editCategoryBtn").addEventListener("click", () => openCategoryDrawer(categoryById(activeCategoryId)));
@@ -3057,6 +3078,10 @@
     el("uploadCategoryConfigBtn").addEventListener("click", uploadActiveCategoryConfig);
     el("categoryConfigImportInput").addEventListener("change", handleCategoryConfigImport);
     el("downloadCategoryFailureBtn").addEventListener("click", downloadCategoryImportFailures);
+    el("associateTagFilter").addEventListener("change", () => {
+      associateTagFilter = el("associateTagFilter").value;
+      renderCategoryDetail();
+    });
     el("associateAudioBtn").addEventListener("click", associateAudioToCategory);
     el("categoryConfigRows").addEventListener("click", (event) => {
       const button = event.target.closest("[data-edit-lang]");
