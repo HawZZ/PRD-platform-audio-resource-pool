@@ -299,6 +299,14 @@
       font-size: 13px;
     }
 
+    .readonly-value {
+      min-height: 34px;
+      display: flex;
+      align-items: center;
+      padding: 7px 0;
+      color: var(--text);
+    }
+
     input,
     select,
     textarea {
@@ -2110,8 +2118,11 @@
             <div class="form-section-title">基础信息</div>
             <div class="form-grid">
               <div class="field">
-                <label for="audioIdInput"><span class="required-mark">*</span>音源 id</label>
-                <input id="audioIdInput" value="${escapeHtml(audio?.id || "")}" ${audio ? "disabled" : ""} placeholder="1～32 位字符串" autocomplete="off">
+                <label ${audio ? "" : "for=\"audioIdInput\""}><span class="required-mark">*</span>音源 id</label>
+                ${audio
+                  ? `<div class="readonly-value mono" id="audioIdReadonly">${escapeHtml(audio.id)}</div>`
+                  : `<input id="audioIdInput" value="" placeholder="1～32 位字符串" autocomplete="off">`
+                }
               </div>
             </div>
           </section>
@@ -2161,7 +2172,7 @@
     }
 
     function saveAudio() {
-      const id = el("audioIdInput").value.trim();
+      const id = editingAudioId || el("audioIdInput").value.trim();
       const type = el("audioTypeInput").value;
       const source = el("audioSourceInput")?.value.trim() || "";
       if (!id) return showToast("音源 id 不能为空", "error");
