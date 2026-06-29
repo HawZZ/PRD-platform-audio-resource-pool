@@ -1547,10 +1547,10 @@
       <button class="icon-btn" data-close-modal aria-label="关闭">×</button>
     </div>
     <div class="modal-body">
-      <div class="notice">导入模板中的音源 ID 列必须按文本处理，避免 `00` 被表格软件转成 `0`。</div>
+      <div class="notice">导入音源仅支持本地音源。在线音源需要手动新增并上传 / 维护资源文件；导入模板中的音源 ID 列必须按文本处理，避免 `00` 被表格软件转成 `0`。</div>
       <div class="import-actions">
         <button class="btn subtle" id="downloadImportTemplateBtn" type="button">下载导入模板</button>
-        <span class="muted">模板包含音源 ID、类型、归属类别、标签、在线资源字段。</span>
+        <span class="muted">模板包含音源 ID、归属类别、标签；导入后统一创建为本地音源。</span>
       </div>
       <div class="upload-box">
         <div class="field">
@@ -2717,8 +2717,8 @@
     }
 
     const importTemplateRows = [
-      { id: "10", type: "本地", categoryNames: "助眠场景", tags: "助眠,白噪音", source: "" },
-      { id: "11", type: "在线", categoryNames: "自然声合集", tags: "自然声", source: "https://cdn.example.com/audio/wn08/forest.mp3" }
+      { id: "10", categoryNames: "助眠场景", tags: "助眠,白噪音" },
+      { id: "11", categoryNames: "自然声合集", tags: "自然声" }
     ];
 
     function csvCell(value) {
@@ -2727,8 +2727,8 @@
     }
 
     function downloadImportTemplate() {
-      const header = ["音源ID", "音源类型", "归属类别", "音源标签", "在线资源URL"];
-      const rows = importTemplateRows.map((row) => [row.id, row.type, row.categoryNames, row.tags, row.source]);
+      const header = ["音源ID", "归属类别", "音源标签"];
+      const rows = importTemplateRows.map((row) => [row.id, row.categoryNames, row.tags]);
       const csv = [header, ...rows].map((row) => row.map(csvCell).join(",")).join("\n");
       const blob = new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" });
       const url = URL.createObjectURL(blob);
@@ -2749,6 +2749,7 @@
 
     function normalizeAudioType(value) {
       const text = String(value || "").trim().toLowerCase();
+      if (!text) return "local";
       if (["本地", "local"].includes(text)) return "local";
       if (["在线", "online"].includes(text)) return "online";
       return "";
@@ -2769,18 +2770,18 @@
         return matched ?? fallback;
       };
       const idIndex = indexOf(["音源ID", "audio_id"], 0);
-      const typeIndex = indexOf(["音源类型", "type"], 1);
-      const categoryIndex = indexOf(["归属类别", "category_names"], 2);
-      const tagIndex = indexOf(["音源标签", "tags"], 3);
-      const sourceIndex = indexOf(["在线资源URL", "source"], 4);
+      const typeIndex = indexOf(["音源类型", "type"], -1);
+      const categoryIndex = indexOf(["归属类别", "category_names"], 1);
+      const tagIndex = indexOf(["音源标签", "tags"], 2);
+      const sourceIndex = indexOf(["在线资源URL", "source"], -1);
       return dataLines.map((line) => {
         const values = splitCsvLine(line);
         return {
           id: values[idIndex] || "",
-          type: values[typeIndex] || "",
+          type: typeIndex >= 0 ? values[typeIndex] || "" : "本地",
           categoryNames: values[categoryIndex] || "",
           tags: values[tagIndex] || "",
-          source: values[sourceIndex] || ""
+          source: sourceIndex >= 0 ? values[sourceIndex] || "" : ""
         };
       });
     }
@@ -2798,9 +2799,8 @@
         if (audioId.length > 32) failureReasons.push("音源ID不能超过 32 位");
         if (audioId && audioSources.some((audio) => audio.id === audioId)) failureReasons.push("音源ID已存在");
         if (audioId && seenIds.has(audioId)) failureReasons.push("导入文件内音源ID重复");
-        if (!normalizedType) failureReasons.push("音源类型必须为本地或在线");
-        if (normalizedType === "online" && !source.trim()) failureReasons.push("在线音源必须填写在线资源URL");
-        if (normalizedType === "online" && !isUrlOrEmpty(source.trim())) failureReasons.push("在线资源URL不是有效 URL");
+        if (!normalizedType) failureReasons.push("音源类型必须为本地；在线音源请手动新增并上传资源文件");
+        if (normalizedType === "online") failureReasons.push("导入音源仅支持本地音源；在线音源请手动新增并上传资源文件");
         const invalidCategories = categoryNamesList.filter((name) => !categories.some((item) => item.name === name));
         if (invalidCategories.length) failureReasons.push(`归属类别不存在：${invalidCategories.join("、")}；导入时不支持新增类别`);
         const invalidTags = tagList.filter((tag) => !tags.includes(tag));
@@ -2814,8 +2814,8 @@
         const categoryIds = categoryNamesList.map((name) => categories.find((item) => item.name === name)?.id).filter(Boolean);
         audioSources.push({
           id: audioId,
-          type: normalizedType,
-          source: normalizedType === "online" ? source.trim() : "",
+          type: "local",
+          source: "",
           categoryIds,
           tags: tagList,
           updated: todayString()
