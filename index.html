@@ -494,6 +494,11 @@
       background: #f1f2f5;
     }
 
+    .tag.warn {
+      color: #8a5a00;
+      background: #fff4d6;
+    }
+
     .batch-bar {
       min-height: 42px;
       padding: 9px 12px;
@@ -1427,7 +1432,7 @@
                   <select id="associateAudioSelect"></select>
                 </div>
                 <button class="btn primary" id="associateAudioBtn">关联音源</button>
-                <div class="muted">同一音源 ID 可以出现在多个类别中；类别内的多语言配置相互独立。可导出表格编辑后上传覆盖当前类别多语言配置。</div>
+                <div class="muted">同一音源 ID 可以出现在多个类别中；类别内的多语言配置相互独立。可导出表格编辑后上传覆盖当前类别名称配置。</div>
               </div>
               <div class="table-wrap language-table">
                 <table>
@@ -1763,7 +1768,7 @@
         id: "category-export-import",
         target: "category-export-import",
         title: "类别配置导出 / 上传",
-        body: "音源类别支持导出关联 id 列表和多语言配置，用户线下编辑表格后上传，覆盖当前类别下同 id 的多语言内容。",
+        body: "音源类别导出 / 上传覆盖只处理各语言音源名称；音源图片仍通过单条语言编辑在页面内配置。",
         loc: "类别详情操作区"
       },
       {
@@ -1831,6 +1836,10 @@
       category.configs[audioId] ||= {};
       category.configs[audioId][lang] ||= { name: "", image: "", asset: "" };
       return category.configs[audioId][lang];
+    }
+
+    function isLanguageConfigured(config) {
+      return Boolean(config?.name && config?.image);
     }
 
     function categoryName(id) {
@@ -2025,6 +2034,7 @@
           <th>音源 ID</th>
           <th>音源标签</th>
           ${languageCodes.map((code) => `<th>${escapeHtml(languageOptions[code])}</th>`).join("")}
+          <th>操作</th>
         </tr>
       `;
       el("categoryConfigRows").innerHTML = category.audioIds.map((audioId) => {
@@ -2034,11 +2044,13 @@
           : `<span class="muted">--</span>`;
         const cells = languageCodes.map((code) => {
           const config = normalizeConfig(category, audioId, code);
+          const configured = isLanguageConfigured(config);
           return `
             <td>
               <div class="language-cell">
                 <strong title="${escapeHtml(config.name || "")}">${escapeHtml(config.name || "未配置名称")}</strong>
                 <span title="${escapeHtml(config.image || "")}">图：${escapeHtml(config.image || "--")}</span>
+                <span class="${configured ? "muted" : "tag warn"}">${configured ? "已配置" : "未配置，回退英文"}</span>
                 <button class="btn link" data-edit-lang="${escapeHtml(category.id)}" data-audio-id="${escapeHtml(audioId)}" data-lang="${escapeHtml(code)}">编辑</button>
               </div>
             </td>
@@ -2049,6 +2061,7 @@
             <td><span class="mono">${escapeHtml(audioId)}</span></td>
             <td><div class="inline-actions">${tagHtml}</div></td>
             ${cells}
+            <td><button class="btn link" data-unlink-audio="${escapeHtml(audioId)}">解除关联</button></td>
           </tr>
         `;
       }).join("");
@@ -2062,10 +2075,7 @@
           category.audioIds.forEach((audioId) => {
             const audio = audioById(audioId);
             if (!audio) return;
-            const configuredCount = languageCodes.filter((code) => {
-              const cfg = normalizeConfig(category, audioId, code);
-              return cfg.name && cfg.image;
-            }).length;
+            const configuredCount = languageCodes.filter((code) => isLanguageConfigured(normalizeConfig(category, audioId, code))).length;
             const sample = normalizeConfig(category, audioId, "zh");
             rows.push({
               category,
@@ -2371,10 +2381,7 @@
       return [
         "音源ID",
         "音源标签",
-        ...languageCodes.flatMap((code) => [
-          `${languageOptions[code]}名称`,
-          `${languageOptions[code]}图片URL`
-        ])
+        ...languageCodes.map((code) => `${languageOptions[code]}名称`)
       ];
     }
 
@@ -2384,9 +2391,9 @@
         return [
           audioId,
           audio?.tags.join("|") || "",
-          ...languageCodes.flatMap((code) => {
+          ...languageCodes.map((code) => {
             const config = normalizeConfig(category, audioId, code);
-            return [config.name, config.image];
+            return config.name;
           })
         ];
       });
@@ -2447,10 +2454,8 @@
         const row = { audioId: values[idIndex] || "", configs: {} };
         languageCodes.forEach((code) => {
           const nameIndex = headerIndex(header, [`${languageOptions[code]}名称`, `${code}_name`]);
-          const imageIndex = headerIndex(header, [`${languageOptions[code]}图片URL`, `${code}_image`]);
           row.configs[code] = {
-            name: values[nameIndex] || "",
-            image: values[imageIndex] || ""
+            name: values[nameIndex] || ""
           };
         });
         return row;
@@ -2498,22 +2503,14 @@
           result.failures.push({ audioId: row.audioId, reason: "该音源ID未关联到当前类别" });
           return;
         }
-        const invalidFields = [];
-        languageCodes.forEach((code) => {
-          const config = row.configs[code] || {};
-          if (!isUrlOrEmpty(config.image)) invalidFields.push(`${languageOptions[code]}图片URL不是 URL`);
-        });
-        if (invalidFields.length) {
-          result.failures.push({
-            audioId: row.audioId,
-            reason: `${invalidFields.join("；")}；批量上传覆盖的图片字段只支持 URL，图片附件上传请在单条语言编辑界面处理`
-          });
-          return;
-        }
         category.configs ||= {};
         category.configs[row.audioId] ||= {};
         languageCodes.forEach((code) => {
-          category.configs[row.audioId][code] = row.configs[code] || { name: "", image: "", asset: "" };
+          const previous = normalizeConfig(category, row.audioId, code);
+          category.configs[row.audioId][code] = {
+            ...previous,
+            name: row.configs[code]?.name || ""
+          };
         });
         result.success += 1;
       });
@@ -2541,7 +2538,7 @@
       }
       const reader = new FileReader();
       reader.onload = () => {
-        setCategoryImportProgress(68, "校验 URL 并覆盖配置");
+        setCategoryImportProgress(68, "校验音源 ID 并覆盖名称");
         applyCategoryConfigRows(category, parseCategoryConfigCsv(reader.result || ""), file.name);
       };
       reader.onerror = () => {
@@ -2688,6 +2685,17 @@
       languageCodes.forEach((code) => normalizeConfig(category, audioId, code));
       renderAll();
       showToast("音源已关联到类别");
+    }
+
+    function unlinkAudioFromCategory(audioId) {
+      const category = categoryById(activeCategoryId);
+      if (!category || !audioId) return;
+      category.audioIds = category.audioIds.filter((id) => id !== audioId);
+      if (category.configs) delete category.configs[audioId];
+      const audio = audioById(audioId);
+      if (audio) setAudioCategoryIds(audio, audioCategoryIds(audio).filter((id) => id !== category.id));
+      renderAll();
+      showToast("已解除该音源与当前类别的关联");
     }
 
     function addTag() {
@@ -3084,6 +3092,11 @@
     });
     el("associateAudioBtn").addEventListener("click", associateAudioToCategory);
     el("categoryConfigRows").addEventListener("click", (event) => {
+      const unlink = event.target.closest("[data-unlink-audio]");
+      if (unlink) {
+        unlinkAudioFromCategory(unlink.dataset.unlinkAudio);
+        return;
+      }
       const button = event.target.closest("[data-edit-lang]");
       if (!button) return;
       openLanguageDrawer(button.dataset.editLang, button.dataset.audioId, button.dataset.lang);
